@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import os, re
 import pandas as pd
 
@@ -17,6 +18,7 @@ class Schedule:
             l.append(d)
 
     df = pd.DataFrame(l)
+    df['File'] = df['File'].str.lower()
     df[['Subject_ID', 'Task_ID']] = df[['Subject_ID', 'Task_ID']].astype(int)
     df.sort(['Task_ID', 'Subject_ID'], inplace = True)
     df.set_index(['Task_ID', 'Subject_ID'], inplace = True)

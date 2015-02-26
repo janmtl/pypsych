@@ -25,7 +25,7 @@ test_requirements = [
 setup(
     name='pypsych',
     version='0.0.1',
-    description="Python tool for processing experimental data from BioPac and SMI BeGaze",
+    description="Data-crunching automation for psychology experiments (SMI BeGaze, Biopac,...)",
     long_description=readme + '\n\n' + history,
     author="Jan Florjanczyk",
     author_email='jan.florjanczyk@gmail.com',

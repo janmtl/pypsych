@@ -9,7 +9,7 @@ PyPsych
         :target: https://pypi.python.org/pypi/pypsych
 
 
-Python tool for processing experimental data from BioPac and SMI BeGaze
+Data-crunching automation for psychology experiments (SMI BeGaze, Biopac,...)
 
 * Free software: BSD license
 * Documentation: https://pypsych.readthedocs.org.

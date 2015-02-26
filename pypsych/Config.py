@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import os
 import yaml
 from pkg_resources import resource_filename
@@ -35,7 +36,7 @@ class Config:
       logging.warning("The file " + path + " is not valid YAML. Using default config.")
       self.raw = default
     except SchemaError:
-      logging.warning("The file " + path + " is not a valid configuration. Using default config.")
+      logging.warning("The file " + path + " is not valid PyPsych config. Using default config.")
       self.raw = default
     else:
       self.raw = raw
@@ -45,7 +46,8 @@ class Config:
     if param == "file_patterns":
       output = {}
       for name, interface in self.raw['interfaces'].iteritems():
-        output[name] = interface['file_patterns']
+        if 'file_patterns' in interface.keys():
+          output[name] = interface['file_patterns']
     # Fetch all of the labels for a task (default task 1)
     elif param == "label_patterns":
       output = []
@@ -54,5 +56,8 @@ class Config:
         if 'label_patterns' in interface.keys():
           for label_pattern in interface['label_patterns']:
             if label_pattern['task_ID'] == task_ID: output+=label_pattern['labels']
-
+    elif param == "mask_file_pattern":
+      output = self.raw['interfaces']['Mask']['re']
+    else:
+      output = ""
     return output

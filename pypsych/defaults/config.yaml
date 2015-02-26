@@ -1,12 +1,14 @@
 ---
 interfaces:
+  Mask:
+    re        : '^(?P<Event_ID>[0-9\.]+)\w*\.(bmp)$'
   Biopac:
     file_patterns:
       re      : '^(?P<File>CL|EM|ER|ST)_(?P<Subject_ID>[0-9]+)_(?P<Task_ID>[0-9]+)_(?P<Channel>ecg|resp)\.(txt|csv|tsv)$'
   BeGaze:
     file_patterns:
       re      : '^(?P<Subject_ID>[0-9]+)_(?P<Task_ID>[0-9]+)_(?P<File>[A-z]+)\.(txt|csv|tsv)$'
-      Channel : pupil
+      Channel : eye
     label_patterns:
       - task_ID: 1
         labels:
@@ -51,6 +53,48 @@ interfaces:
           - pattern : _Distract_LongStim
             duration: 8000
       - task_ID: 2
+        labels:
+          - pattern : BlackFix
+            duration: 100000000000000000000
+          - pattern : WhiteFix
+            duration: 10000
+          - pattern : _Attend_InitialFix
+            duration: 8000
+          - pattern : _Attend_ShortStim
+            duration: 2000
+          - pattern : _Attend_Fix2
+            duration: 3000
+          - pattern : _Attend_PreCueStim
+            duration: 2000
+          - pattern : _Attend_ImgwCue
+            duration: 1000
+          - pattern : _Attend_LongStim
+            duration: 8000
+          - pattern : _Rethink_InitialFix
+            duration: 8000
+          - pattern : _Rethink_ShortStim
+            duration: 2000
+          - pattern : _Rethink_Fix2
+            duration: 3000
+          - pattern : _Rethink_PreCueStim
+            duration: 2000
+          - pattern : _Rethink_ImgwCue
+            duration: 1000
+          - pattern : _Rethink_LongStim
+            duration: 8000
+          - pattern : _Distract_InitialFix
+            duration: 8000
+          - pattern : _Distract_ShortStim
+            duration: 2000
+          - pattern : _Distract_Fix2
+            duration: 3000
+          - pattern : _Distract_PreCueStim
+            duration: 2000
+          - pattern : _Distract_ImgwCue
+            duration: 1000
+          - pattern : _Distract_LongStim
+            duration: 8000
+      - task_ID: 3
         labels:
           - pattern : BlackFix
             duration: 100000000000000000000

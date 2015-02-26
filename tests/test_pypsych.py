@@ -10,23 +10,37 @@ Tests for `pypsych` module.
 
 import unittest
 from pypsych import pypsych
+import numpy as np
+import pandas as pd
+import logging
+logging.basicConfig(level=logging.INFO)
 
 class TestPypsych(unittest.TestCase):
 
   def setUp(self):
+    logging.info('Loading config file...')
+    self.config   = pypsych.Config()
+    logging.info('Building schedule of files...')
+    self.schedule = pypsych.Schedule( data_path     = '/users/yan/dev-local/eye',
+                                      file_patterns = self.config.get('file_patterns'))
+    mask_dirs   = ['/users/yan/dev-local/eye/roi/henry', '/users/yan/dev-local/eye/roi/ko']
+    mask_colors = [[30, 255, 0], [30, 255, 0]]
+    logging.info('Loading ROI masks...')
+    self.masker = pypsych.Masker(dirs         = mask_dirs,
+                                 colors       = mask_colors,
+                                 file_pattern = self.config.get('mask_file_pattern'))
     pass
 
   def test_BeGaze(self):
-    CONFIG = pypsych.Config()
-    schedule = pypsych.Schedule( data_path     = '/users/yan/dev-local/eye',
-                                 file_patterns = CONFIG.get('file_patterns'))
-    print schedule.data.loc[1,105]
-    # print schedule.data[1][105]
-    label_patterns = CONFIG.get('label_patterns')
-    # samples = pypsych.interfaces.BeGaze.assemble( samples_path   = samples_path,
-    #                                               labels_path    = labels_path,
-    #                                               label_patterns = label_patterns)
-    # print samples
+    begaze_sched = self.schedule.data[self.schedule.data['Interface'] == 'BeGaze']
+    tiny_sched = begaze_sched.loc[1, 101]
+    samples = pd.read_csv('/users/yan/dev-local/out/1_101_LabeledSamples.tsv', sep="\t")
+    roi = self.masker.get_roi(samples)
+    print roi
+    # pypsych.consume_schedule( schedule = tiny_sched,
+    #                           config = self.config,
+    #                           output_dir = '/users/yan/dev-local/out/',
+    #                           masker = self.masker)
 
   def tearDown(self):
     pass

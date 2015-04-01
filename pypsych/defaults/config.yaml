@@ -1,138 +1,95 @@
 ---
-interfaces:
-  Mask:
-    re        : '^(?P<Event_ID>[0-9\.]+)\w*\.(bmp)$'
-  Biopac:
-    file_patterns:
-      re      : '^(?P<File>CL|EM|ER|ST)_(?P<Subject_ID>[0-9]+)_(?P<Task_ID>[0-9]+)_(?P<Channel>ecg|resp)\.(txt|csv|tsv)$'
-  BeGaze:
-    file_patterns:
-      re      : '^(?P<Subject_ID>[0-9]+)_(?P<Task_ID>[0-9]+)_(?P<File>[A-z]+)\.(txt|csv|tsv)$'
-      Channel : eye
-    label_patterns:
-      - task_ID: 1
+# Global configuration
+data_path:   '/users/yan/dev-local/data'
+output_path: '/users/yan/dev-local/output'
+interfaces:  ['Biopac', 'BeGaze']
+
+# List of recognized tasks and their interface configurations
+tasks:
+  Calibration:
+    ID: 1
+    interfaces:
+      BeGaze:
+        files:
+          samples: '^(?P<Subject_ID>[0-9]{3})(?P<Task_Order>1)_(S|s)amples\.txt$'
+          labels: '^(?P<Subject_ID>[0-9]{3})(?P<Task_Order>1)_labels\.txt$'
         labels:
-          - pattern : BlackFix
-            duration: 10000
-          - pattern : WhiteFix
-            duration: 10000
-          - pattern : _Attend_InitialFix
-            duration: 8000
-          - pattern : _Attend_ShortStim
-            duration: 2000
-          - pattern : _Attend_Fix2
-            duration: 3000
-          - pattern : _Attend_PreCueStim
-            duration: 2000
-          - pattern : _Attend_ImgwCue
-            duration: 1000
-          - pattern : _Attend_LongStim
-            duration: 8000
-          - pattern : _Rethink_InitialFix
-            duration: 8000
-          - pattern : _Rethink_ShortStim
-            duration: 2000
-          - pattern : _Rethink_Fix2
-            duration: 3000
-          - pattern : _Rethink_PreCueStim
-            duration: 2000
-          - pattern : _Rethink_ImgwCue
-            duration: 1000
-          - pattern : _Rethink_LongStim
-            duration: 8000
-          - pattern : _Distract_InitialFix
-            duration: 8000
-          - pattern : _Distract_ShortStim
-            duration: 2000
-          - pattern : _Distract_Fix2
-            duration: 3000
-          - pattern : _Distract_PreCueStim
-            duration: 2000
-          - pattern : _Distract_ImgwCue
-            duration: 1000
-          - pattern : _Distract_LongStim
-            duration: 8000
-      - task_ID: 2
+          pattern: '(?P<Event_Type>BlackFix|GreyFix|WhiteFix)(?P<Event_ID>[0-9]+)'
+          GreyFix:  [10000, 1]
+          BlackFix: [10000, 1]
+          WhiteFix: [10000, 1]
+      Biopac:
+        files: '(Calibration|Calibrate)_(?P<Subject_ID>[0-9]{3})(?P<Task_Order>1)(_[0-9]{4}|)\.mat$'
         labels:
-          - pattern : BlackFix
-            duration: 100000000000000000000
-          - pattern : WhiteFix
-            duration: 10000
-          - pattern : _Attend_InitialFix
-            duration: 8000
-          - pattern : _Attend_ShortStim
-            duration: 2000
-          - pattern : _Attend_Fix2
-            duration: 3000
-          - pattern : _Attend_PreCueStim
-            duration: 2000
-          - pattern : _Attend_ImgwCue
-            duration: 1000
-          - pattern : _Attend_LongStim
-            duration: 8000
-          - pattern : _Rethink_InitialFix
-            duration: 8000
-          - pattern : _Rethink_ShortStim
-            duration: 2000
-          - pattern : _Rethink_Fix2
-            duration: 3000
-          - pattern : _Rethink_PreCueStim
-            duration: 2000
-          - pattern : _Rethink_ImgwCue
-            duration: 1000
-          - pattern : _Rethink_LongStim
-            duration: 8000
-          - pattern : _Distract_InitialFix
-            duration: 8000
-          - pattern : _Distract_ShortStim
-            duration: 2000
-          - pattern : _Distract_Fix2
-            duration: 3000
-          - pattern : _Distract_PreCueStim
-            duration: 2000
-          - pattern : _Distract_ImgwCue
-            duration: 1000
-          - pattern : _Distract_LongStim
-            duration: 8000
-      - task_ID: 3
+          pattern: '(?P<Event_Type>SixMinFix)'
+          SixMinFix: [360000, 1]
+  Eyemotion:
+    ID: 2
+    interfaces:
+      BeGaze:
+        files:
+          samples: '^(?P<Subject_ID>[0-9]{3})(?P<Task_Order>[2-4])_(S|s)amples\.txt$'
+          labels: '^(?P<Subject_ID>[0-9]{3})(?P<Task_Order>[2-4])_labels\.txt$'
         labels:
-          - pattern : BlackFix
-            duration: 100000000000000000000
-          - pattern : WhiteFix
-            duration: 10000
-          - pattern : _Attend_InitialFix
-            duration: 8000
-          - pattern : _Attend_ShortStim
-            duration: 2000
-          - pattern : _Attend_Fix2
-            duration: 3000
-          - pattern : _Attend_PreCueStim
-            duration: 2000
-          - pattern : _Attend_ImgwCue
-            duration: 1000
-          - pattern : _Attend_LongStim
-            duration: 8000
-          - pattern : _Rethink_InitialFix
-            duration: 8000
-          - pattern : _Rethink_ShortStim
-            duration: 2000
-          - pattern : _Rethink_Fix2
-            duration: 3000
-          - pattern : _Rethink_PreCueStim
-            duration: 2000
-          - pattern : _Rethink_ImgwCue
-            duration: 1000
-          - pattern : _Rethink_LongStim
-            duration: 8000
-          - pattern : _Distract_InitialFix
-            duration: 8000
-          - pattern : _Distract_ShortStim
-            duration: 2000
-          - pattern : _Distract_Fix2
-            duration: 3000
-          - pattern : _Distract_PreCueStim
-            duration: 2000
-          - pattern : _Distract_ImgwCue
-            duration: 1000
-          - pattern : _Distract_LongStim
-            duration: 8000
+          pattern: '(?P<Event_ID>^[0-9\.]+)_(?P<Event_Group>Attend|Rethink|Distract)_(?P<Event_Type>[A-z0-9]+)'
+          InitialFix: [8000, 16]
+          ShortStim:  [2000,  4]
+          Fix2:       [3000,  6]
+          PreCueStim: [2000,  4]
+          ImgwCue:    [1000,  2]
+          LongStim:   [8000, 16]
+        ROI:
+          - coder:
+              path: '/users/yan/dev-local/eye/roi/henry'
+              files: '^(?P<Event_ID>[0-9\.]+)\w*\.(bmp)$'
+              color: [30, 255, 0]
+          - coder:
+              path: '/users/yan/dev-local/eye/roi/ko'
+              files: '^(?P<Event_ID>[0-9\.]+)\w*\.(bmp)$'
+              color: [30, 255, 0]
+      Biopac:
+        files: 'Eye(M|m)otion_(?P<Subject_ID>[0-9]{3})(?P<Task_Order>[2-4])(_[0-9]{4}|)\.mat$'
+  Sternberg:
+    ID: 3
+    interfaces:
+      BeGaze:
+        files:
+          samples: '^(?P<Subject_ID>[0-9]{3})(?P<Task_Order>[2-4])_(S|s)amples\.txt$'
+          labels: '^(?P<Subject_ID>[0-9]{3})(?P<Task_Order>[2-4])_labels\.txt$'
+        labels:
+          ShortStringEncoding: [1200, 12, 'ShortString_(?P<Event_Group>Absent|Present)_(?P<Event_ID>^[0-9\.]+)']
+          ShortStringFixation: [3000, 30, 'ShortString_(?P<Event_Group>Absent|Present)_(?P<Event_ID>^[0-9\.]+)Fix2']
+          LongStringEncoding:  [3600, 36, 'LongString_(?P<Event_Group>Absent|Present)_(?P<Event_ID>^[0-9\.]+)']
+          LongStringFixation:  [3000, 30, 'LongString_(?P<Event_Group>Absent|Present)_(?P<Event_ID>^[0-9\.]+)Fix1']
+        ROI:
+          - coder:
+              path: '/users/yan/dev-local/eye/roi/henry'
+              files: '^(?P<Event_ID>[0-9\.]+)\w*\.(bmp)$'
+              color: [30, 255, 0]
+          - coder:
+              path: '/users/yan/dev-local/eye/roi/ko'
+              files: '^(?P<Event_ID>[0-9\.]+)\w*\.(bmp)$'
+              color: [30, 255, 0]
+      Biopac:
+        files: 'Sternberg_(?P<Subject_ID>[0-9]{3})(?P<Task_Order>[2-4])(_[0-9]{4}|)\.mat$'
+  Slideshow:
+    ID: 4
+    interfaces:
+      BeGaze:
+        files:
+          samples: '^(?P<Subject_ID>[0-9]{3})(?P<Task_Order>[2-4])_(S|s)amples\.txt$'
+          labels: '^(?P<Subject_ID>[0-9]{3})(?P<Task_Order>[2-4])_labels\.txt$'
+        labels:
+          InitialFix: [3000, 3, '(?P<Event_ID>^[0-9\.]+)_(?P<Event_Group>pos|neutral|neg)_InitialFix']
+          LongStim:   [8000, 8, '(?P<Event_ID>^[0-9\.]+)_(?P<Event_Group>pos|neutral|neg)_InitialFix']
+        ROI:
+          - coder:
+              path: '/users/yan/dev-local/eye/roi/henry'
+              files: '^(?P<Event_ID>[0-9\.]+)\w*\.(bmp)$'
+              color: [30, 255, 0]
+          - coder:
+              path: '/users/yan/dev-local/eye/roi/ko'
+              files: '^(?P<Event_ID>[0-9\.]+)\w*\.(bmp)$'
+              color: [30, 255, 0]
+      Biopac:
+        files: '(Slideshow|EmoSlideshow)_(?P<Subject_ID>[0-9]{3})(?P<Task_Order>[2-4])(_[0-9]{4}|)\.mat$'

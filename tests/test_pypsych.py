@@ -14,7 +14,6 @@ import numpy as np
 import pandas as pd
 import logging
 logging.basicConfig(level=logging.INFO)
-pd.set_option('display.height', 1000)
 pd.set_option('display.max_rows', 500)
 pd.set_option('display.max_columns', 500)
 pd.set_option('display.width', 1000)
@@ -28,6 +27,7 @@ class TestPypsych(unittest.TestCase):
     experiment = pypsych.Experiment()
     experiment.compile_interfaces()
     experiment.compile_schedule()
+    experiment.consume_schedule()
 
   def tearDown(self):
     pass

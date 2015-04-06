@@ -14,15 +14,13 @@ tasks:
           samples: '^(?P<Subject_ID>[0-9]{3})(?P<Task_Order>1)_(S|s)amples\.txt$'
           labels: '^(?P<Subject_ID>[0-9]{3})(?P<Task_Order>1)_labels\.txt$'
         labels:
-          pattern: '(?P<Event_Type>BlackFix|GreyFix|WhiteFix)(?P<Event_ID>[0-9]+)'
-          GreyFix:  [10000, 1]
-          BlackFix: [10000, 1]
-          WhiteFix: [10000, 1]
+          GreyFix:  [10000, 1, 'BlackFix(?P<Event_ID>[0-9]+)']
+          BlackFix: [10000, 1,  'GreyFix(?P<Event_ID>[0-9]+)']
+          WhiteFix: [10000, 1, 'WhiteFix(?P<Event_ID>[0-9]+)']
       Biopac:
         files: '(Calibration|Calibrate)_(?P<Subject_ID>[0-9]{3})(?P<Task_Order>1)(_[0-9]{4}|)\.mat$'
         labels:
-          pattern: '(?P<Event_Type>SixMinFix)'
-          SixMinFix: [360000, 1]
+          SixMinFix: [360000, 1, 'SixMinFix']
   Eyemotion:
     ID: 2
     interfaces:
@@ -31,22 +29,19 @@ tasks:
           samples: '^(?P<Subject_ID>[0-9]{3})(?P<Task_Order>[2-4])_(S|s)amples\.txt$'
           labels: '^(?P<Subject_ID>[0-9]{3})(?P<Task_Order>[2-4])_labels\.txt$'
         labels:
-          pattern: '(?P<Event_ID>^[0-9\.]+)_(?P<Event_Group>Attend|Rethink|Distract)_(?P<Event_Type>[A-z0-9]+)'
-          InitialFix: [8000, 16]
-          ShortStim:  [2000,  4]
-          Fix2:       [3000,  6]
-          PreCueStim: [2000,  4]
-          ImgwCue:    [1000,  2]
-          LongStim:   [8000, 16]
-        ROI:
-          - coder:
-              path: '/users/yan/dev-local/eye/roi/henry'
-              files: '^(?P<Event_ID>[0-9\.]+)\w*\.(bmp)$'
-              color: [30, 255, 0]
-          - coder:
-              path: '/users/yan/dev-local/eye/roi/ko'
-              files: '^(?P<Event_ID>[0-9\.]+)\w*\.(bmp)$'
-              color: [30, 255, 0]
+          InitialFix: [8000, 16, '(?P<Event_ID>^[0-9\.]+)_(?P<Event_Group>Attend|Rethink|Distract)_InitialFix']
+          ShortStim:  [2000,  4, '(?P<Event_ID>^[0-9\.]+)_(?P<Event_Group>Attend|Rethink|Distract)_ShortStim' ]
+          Fix2:       [3000,  6, '(?P<Event_ID>^[0-9\.]+)_(?P<Event_Group>Attend|Rethink|Distract)_Fix2'      ]
+          PreCueStim: [2000,  4, '(?P<Event_ID>^[0-9\.]+)_(?P<Event_Group>Attend|Rethink|Distract)_PreCueStim']
+          ImgwCue:    [1000,  2, '(?P<Event_ID>^[0-9\.]+)_(?P<Event_Group>Attend|Rethink|Distract)_ImgwCue'   ]
+          LongStim:   [8000, 16, '(?P<Event_ID>^[0-9\.]+)_(?P<Event_Group>Attend|Rethink|Distract)_LongStim'  ]
+        # ROI:
+        #   - path: '/Users/yan/dev-local/data/roi/henry2'
+        #     files: '^(?P<Event_ID>[0-9\.]+)\w*\.(bmp)$'
+        #     color: [ 30, 255,  0]
+        #   - path: '/users/yan/dev-local/data/roi/ko2'
+        #     files: '^(?P<Event_ID>[0-9\.]+)\w*\.(bmp)$'
+        #     color: [ 30, 255,  0]
       Biopac:
         files: 'Eye(M|m)otion_(?P<Subject_ID>[0-9]{3})(?P<Task_Order>[2-4])(_[0-9]{4}|)\.mat$'
   Sternberg:
@@ -59,17 +54,8 @@ tasks:
         labels:
           ShortStringEncoding: [1200, 12, 'ShortString_(?P<Event_Group>Absent|Present)_(?P<Event_ID>^[0-9\.]+)']
           ShortStringFixation: [3000, 30, 'ShortString_(?P<Event_Group>Absent|Present)_(?P<Event_ID>^[0-9\.]+)Fix2']
-          LongStringEncoding:  [3600, 36, 'LongString_(?P<Event_Group>Absent|Present)_(?P<Event_ID>^[0-9\.]+)']
-          LongStringFixation:  [3000, 30, 'LongString_(?P<Event_Group>Absent|Present)_(?P<Event_ID>^[0-9\.]+)Fix1']
-        ROI:
-          - coder:
-              path: '/users/yan/dev-local/eye/roi/henry'
-              files: '^(?P<Event_ID>[0-9\.]+)\w*\.(bmp)$'
-              color: [30, 255, 0]
-          - coder:
-              path: '/users/yan/dev-local/eye/roi/ko'
-              files: '^(?P<Event_ID>[0-9\.]+)\w*\.(bmp)$'
-              color: [30, 255, 0]
+          LongStringEncoding:  [3600, 36,  'LongString_(?P<Event_Group>Absent|Present)_(?P<Event_ID>^[0-9\.]+)']
+          LongStringFixation:  [3000, 30,  'LongString_(?P<Event_Group>Absent|Present)_(?P<Event_ID>^[0-9\.]+)Fix1']
       Biopac:
         files: 'Sternberg_(?P<Subject_ID>[0-9]{3})(?P<Task_Order>[2-4])(_[0-9]{4}|)\.mat$'
   Slideshow:
@@ -82,14 +68,12 @@ tasks:
         labels:
           InitialFix: [3000, 3, '(?P<Event_ID>^[0-9\.]+)_(?P<Event_Group>pos|neutral|neg)_InitialFix']
           LongStim:   [8000, 8, '(?P<Event_ID>^[0-9\.]+)_(?P<Event_Group>pos|neutral|neg)_InitialFix']
-        ROI:
-          - coder:
-              path: '/users/yan/dev-local/eye/roi/henry'
-              files: '^(?P<Event_ID>[0-9\.]+)\w*\.(bmp)$'
-              color: [30, 255, 0]
-          - coder:
-              path: '/users/yan/dev-local/eye/roi/ko'
-              files: '^(?P<Event_ID>[0-9\.]+)\w*\.(bmp)$'
-              color: [30, 255, 0]
+        # ROI:
+        #   - path: '/Users/yan/dev-local/data/roi/henry'
+        #     files: '^(?P<Event_ID>[0-9\.]+)\w*\.(bmp)$'
+        #     color: [  0,   0,  0]
+        #   - path: '/users/yan/dev-local/data/roi/ko'
+        #     files: '^(?P<Event_ID>[0-9\.]+)\w*\.(bmp)$'
+        #     color: [ 30, 255,  0]
       Biopac:
         files: '(Slideshow|EmoSlideshow)_(?P<Subject_ID>[0-9]{3})(?P<Task_Order>[2-4])(_[0-9]{4}|)\.mat$'

@@ -6,14 +6,14 @@ import logging
 
 class Biopac:
   def __init__(self, config):
-    self.config = config
+    self.config  = config
+    self.samples = []
+    self.labels  = []
+    self.output  = []
     pass
 
-  def load(self, trial):
+  def load(self, files):
     self.input = None
-    pass
-
-  def validate_task(self, trial):
     pass
 
   def process(self):

@@ -27,7 +27,10 @@ class TestPypsych(unittest.TestCase):
     experiment = pypsych.Experiment()
     experiment.compile_interfaces()
     experiment.compile_schedule()
+    print experiment.schedule[['Include?', 'Warning']]
     experiment.consume_schedule()
+
+    # BASELINING BASED ON FIRST LABEL
 
   def tearDown(self):
     pass

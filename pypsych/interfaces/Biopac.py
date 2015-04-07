@@ -16,5 +16,5 @@ class Biopac:
     self.input = None
     pass
 
-  def process(self):
+  def process(self, Subject_ID):
     pass

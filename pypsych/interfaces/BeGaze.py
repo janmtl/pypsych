@@ -3,6 +3,7 @@ import os, re
 import pandas as pd
 import numpy  as np
 from scipy import ndimage, misc
+from itertools import product
 import logging
 
 def encodeMask(lst):
@@ -21,10 +22,18 @@ class BeGaze:
                            'event_duration': params[0],
                            'n_bins': params[1],
                            'pattern': params[2]} for name, params in self.config['labels'].iteritems()]
-  
-    self.masks =pd.DataFrame(columns = ['Event_ID', 'Coder', 'Area', 'Mask', 'Path'])
-    # CHECK IF ROI IS PASSED IN CONFIG
+
+    # Compute self.output_columns from the label configurations
+    self.output_columns = ['Subject_ID', 'Event_ID']
+    for label in self.label_configs:
+      self.output_columns.extend([
+        label['event_type'] + '_' + str(x[0]) + '_' + x[1] for x in product(range(label['n_bins']), ['VAR', 'VAL', 'COUNT', 'NANS'])
+      ])
+
+    self.masks = pd.DataFrame(columns = ['Event_ID', 'Coder', 'Area', 'Mask', 'Path'])
+    # check if ROI is available
     if 'ROI' in self.config.keys():
+      self.output_columns.append('roi')
       for coder_idx, coder_config in enumerate(self.config['ROI']):
         cache_path = os.path.join(coder_config['path'], str(coder_idx)+'_cache.txt')
         if os.path.isfile(cache_path):
@@ -37,7 +46,8 @@ class BeGaze:
     self.samples = pd.read_csv(files['BeGaze_samples'], comment="#", delimiter="\t", skipinitialspace=True)
     self.labels  = pd.read_csv(files['BeGaze_labels'],  comment="#", delimiter="\t", skipinitialspace=True)
 
-  def process(self):
+  def process(self, Subject_ID):
+    print 'Processing BeGaze for subject: '+str(Subject_ID)
     raw     = self.samples
     labels  = self.labels
 
@@ -64,19 +74,20 @@ class BeGaze:
     raw[['Time']] = raw[['Time']] - raw.loc[0, 'Time']
     raw[['Time']] = raw[['Time']]/1000
 
-    stats = pd.DataFrame(columns = ['Event_ID', 'Event_Type', 'Event_Group', 'Bin', 'mean', 'std', 'size', 'nans', 'roi'])
-
+    stats = pd.DataFrame(columns = self.output_columns)
+    
     grouped = labels.groupby('Event_ID')
     for event_id, group in grouped:
+      event_stats = pd.DataFrame(columns = [])
       for idx, label in group.iterrows():
         selector = (raw['Time'] >= label['Start_Time']) & (raw['Time'] <= label['End_Time'])
         samples  = self.clean_samples(raw[selector])
         subgrouped = samples.groupby(pd.cut(x = samples.index,
                                             bins = np.linspace( start = samples.index[0], 
                                                                 stop  = samples.index[-1],
-                                                                num   = label['N_Bins'])
+                                                                num   = label['N_Bins']+1)
                                             ))
-        sub_diam_stats  = subgrouped['Diameter'].agg([np.mean, np.std, np.size, nans])
+        sub_diam_stats  = subgrouped['Diameter'].agg({'VAL': np.mean, 'VAR': np.std, 'COUNT': np.size, 'NANS': nans})
         if 'ROI' in self.config.keys():
           sub_roi_stats = subgrouped[['posx', 'posy']].apply(lambda x: self.apply_masks(x, event_id))
           sub_stats = pd.merge(sub_diam_stats, sub_roi_stats, left_index=True, right_index=True)
@@ -84,16 +95,25 @@ class BeGaze:
           sub_stats = sub_diam_stats
         sub_stats.reset_index(inplace=True, drop=True)
         sub_stats['Bin'] = sub_stats.index
-        sub_stats['Event_ID'] = event_id
         sub_stats['Event_Type'] = label['Event_Type']
-        sub_stats['Event_Group'] = label['Event_Group']
-        stats = stats.append(sub_stats)
+        sub_stats['Subject_ID'] = Subject_ID
+        event_stats = event_stats.append(sub_stats)
 
-    stats.index = pd.MultiIndex.from_tuples(zip(stats['Event_Group'], stats['Event_ID'], stats['Event_Type']),
-                                            names = ['Event_Group', 'Event_ID', 'Event_Type'])
-    stats.drop(['Event_ID', 'Event_Type', 'Event_Group'], axis=1, inplace=True)
-    print stats.pivot(index='Event_ID', columns='Bin')
+      event_stats['BinnedType'] = event_stats['Event_Type'] + '_' + event_stats['Bin'].astype(str)
+      event_stats.drop(['Event_Type', 'Bin'], axis=1, inplace=True)
+      event_stats = event_stats.pivot(index = 'Subject_ID', columns = 'BinnedType')
+      event_stats.columns = event_stats.columns.swaplevel(0,1)
+      event_stats.columns = ['_'.join(col) for col in event_stats.columns.values]
+      event_stats['Event_ID']    = event_id
+      event_stats['Event_Group'] = group['Event_Group'].iloc[0]
+      event_stats.reset_index(inplace=True)
+      stats = stats.append(event_stats)
+    stats.reset_index(inplace=True)
+    self.output = stats
         
+  def save_output(path):
+    self.output.to_csv(path, delimiter = "\t")
+    pass
 
   def apply_masks(self, pos, event_id):
     coords = np.floor(pos['posy'])*768+np.floor(pos['posx'])
@@ -114,8 +134,8 @@ class BeGaze:
     samples.columns = ['Time', 'Diameter', 'posx', 'posy', 'info']
     samples.set_index('Time', drop = True, inplace = True)
     no_fixations = (samples['info'] != 'Fixation')
-    samples.drop('info', axis = 1, inplace=True)
     samples.loc[no_fixations,:] = np.nan
+    # samples.drop('info', axis = 1, inplace=True)
     return samples
 
   @staticmethod

@@ -12,7 +12,7 @@ tasks:
       BeGaze:
         files:
           samples: '^(?P<Subject_ID>[0-9]{3})(?P<Task_Order>1)_(S|s)amples\.txt$'
-          labels: '^(?P<Subject_ID>[0-9]{3})(?P<Task_Order>1)_labels\.txt$'
+          labels:  '^(?P<Subject_ID>[0-9]{3})(?P<Task_Order>1)_labels\.txt$'
         labels:
           GreyFix:  [10000, 1, 'BlackFix(?P<Event_ID>[0-9]+)']
           BlackFix: [10000, 1,  'GreyFix(?P<Event_ID>[0-9]+)']
@@ -29,12 +29,12 @@ tasks:
           samples: '^(?P<Subject_ID>[0-9]{3})(?P<Task_Order>[2-4])_(S|s)amples\.txt$'
           labels: '^(?P<Subject_ID>[0-9]{3})(?P<Task_Order>[2-4])_labels\.txt$'
         labels:
-          InitialFix: [8000, 16, '(?P<Event_ID>^[0-9\.]+)_(?P<Event_Group>Attend|Rethink|Distract)_InitialFix']
-          ShortStim:  [2000,  4, '(?P<Event_ID>^[0-9\.]+)_(?P<Event_Group>Attend|Rethink|Distract)_ShortStim' ]
-          Fix2:       [3000,  6, '(?P<Event_ID>^[0-9\.]+)_(?P<Event_Group>Attend|Rethink|Distract)_Fix2'      ]
-          PreCueStim: [2000,  4, '(?P<Event_ID>^[0-9\.]+)_(?P<Event_Group>Attend|Rethink|Distract)_PreCueStim']
-          ImgwCue:    [1000,  2, '(?P<Event_ID>^[0-9\.]+)_(?P<Event_Group>Attend|Rethink|Distract)_ImgwCue'   ]
-          LongStim:   [8000, 16, '(?P<Event_ID>^[0-9\.]+)_(?P<Event_Group>Attend|Rethink|Distract)_LongStim'  ]
+          InitialFix: [8000, 2, '(?P<Event_ID>^[0-9\.]+)_(?P<Event_Group>Attend|Rethink|Distract)_InitialFix']
+          ShortStim:  [2000, 2, '(?P<Event_ID>^[0-9\.]+)_(?P<Event_Group>Attend|Rethink|Distract)_ShortStim' ]
+          Fix2:       [3000, 2, '(?P<Event_ID>^[0-9\.]+)_(?P<Event_Group>Attend|Rethink|Distract)_Fix2'      ]
+          PreCueStim: [2000, 2, '(?P<Event_ID>^[0-9\.]+)_(?P<Event_Group>Attend|Rethink|Distract)_PreCueStim']
+          ImgwCue:    [1000, 2, '(?P<Event_ID>^[0-9\.]+)_(?P<Event_Group>Attend|Rethink|Distract)_ImgwCue'   ]
+          LongStim:   [8000, 2, '(?P<Event_ID>^[0-9\.]+)_(?P<Event_Group>Attend|Rethink|Distract)_LongStim'  ]
         # ROI:
         #   - path: '/Users/yan/dev-local/data/roi/henry2'
         #     files: '^(?P<Event_ID>[0-9\.]+)\w*\.(bmp)$'
@@ -50,12 +50,12 @@ tasks:
       BeGaze:
         files:
           samples: '^(?P<Subject_ID>[0-9]{3})(?P<Task_Order>[2-4])_(S|s)amples\.txt$'
-          labels: '^(?P<Subject_ID>[0-9]{3})(?P<Task_Order>[2-4])_labels\.txt$'
+          labels:  '^(?P<Subject_ID>[0-9]{3})(?P<Task_Order>[2-4])_labels\.txt$'
         labels:
-          ShortStringEncoding: [1200, 12, 'ShortString_(?P<Event_Group>Absent|Present)_(?P<Event_ID>^[0-9\.]+)']
-          ShortStringFixation: [3000, 30, 'ShortString_(?P<Event_Group>Absent|Present)_(?P<Event_ID>^[0-9\.]+)Fix2']
-          LongStringEncoding:  [3600, 36,  'LongString_(?P<Event_Group>Absent|Present)_(?P<Event_ID>^[0-9\.]+)']
-          LongStringFixation:  [3000, 30,  'LongString_(?P<Event_Group>Absent|Present)_(?P<Event_ID>^[0-9\.]+)Fix1']
+          ShortStringEncoding: [1200, 2, 'ShortString_(?P<Event_Group>Absent|Present)_(?P<Event_ID>^[0-9\.]+)']
+          ShortStringFixation: [3000, 2, 'ShortString_(?P<Event_Group>Absent|Present)_(?P<Event_ID>^[0-9\.]+)Fix2']
+          LongStringEncoding:  [3600, 2,  'LongString_(?P<Event_Group>Absent|Present)_(?P<Event_ID>^[0-9\.]+)']
+          LongStringFixation:  [3000, 2,  'LongString_(?P<Event_Group>Absent|Present)_(?P<Event_ID>^[0-9\.]+)Fix1']
       Biopac:
         files: 'Sternberg_(?P<Subject_ID>[0-9]{3})(?P<Task_Order>[2-4])(_[0-9]{4}|)\.mat$'
   Slideshow:
@@ -64,10 +64,10 @@ tasks:
       BeGaze:
         files:
           samples: '^(?P<Subject_ID>[0-9]{3})(?P<Task_Order>[2-4])_(S|s)amples\.txt$'
-          labels: '^(?P<Subject_ID>[0-9]{3})(?P<Task_Order>[2-4])_labels\.txt$'
+          labels:  '^(?P<Subject_ID>[0-9]{3})(?P<Task_Order>[2-4])_labels\.txt$'
         labels:
-          InitialFix: [3000, 3, '(?P<Event_ID>^[0-9\.]+)_(?P<Event_Group>pos|neutral|neg)_InitialFix']
-          LongStim:   [8000, 8, '(?P<Event_ID>^[0-9\.]+)_(?P<Event_Group>pos|neutral|neg)_InitialFix']
+          InitialFix: [3000, 2, '(?P<Event_ID>^[0-9\.]+)_(?P<Event_Group>pos|neutral|neg)_InitialFix']
+          LongStim:   [8000, 2, '(?P<Event_ID>^[0-9\.]+)_(?P<Event_Group>pos|neutral|neg)_InitialFix']
         # ROI:
         #   - path: '/Users/yan/dev-local/data/roi/henry'
         #     files: '^(?P<Event_ID>[0-9\.]+)\w*\.(bmp)$'

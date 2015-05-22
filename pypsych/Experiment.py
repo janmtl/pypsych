@@ -1,4 +1,9 @@
 # -*- coding: utf-8 -*-
+"""
+Includes the Experiment and Schedule_Item classes
+"""
+
+
 import os, re
 import yaml
 import pandas as pd
@@ -10,10 +15,6 @@ import logging
 
 from interfaces.BeGaze import BeGaze
 from interfaces.Biopac import Biopac
-
-pd.set_option('display.max_rows', 500)
-pd.set_option('display.max_columns', 500)
-pd.set_option('display.width', 1000)
 
 class Experiment:
   def __init__(self, **kwargs):
@@ -28,9 +29,9 @@ class Experiment:
     tasks = self.config['tasks']
     
     for task_name, task in tasks.iteritems():
-      for interface_name, interface_config in task['interfaces'].iteritems():
-        if interface_name == 'BeGaze': task['BeGaze'] = BeGaze(interface_config)
-        if interface_name == 'Biopac': task['Biopac'] = Biopac(interface_config)
+      for interface_name in self.config['interfaces']:
+        if interface_name == 'BeGaze': task['BeGaze'] = BeGaze(task['interfaces'][interface_name])
+        if interface_name == 'Biopac': task['Biopac'] = Biopac(task['interfaces'][interface_name])
 
     self.tasks = tasks
 
@@ -79,6 +80,7 @@ class Experiment:
 
   def consume_schedule(self):
     for task_name, task in self.tasks.iteritems():
+      print 'Processing '+task_name
       trials = self.schedule.loc[task_name]
       trials = trials[trials['Include?']]
       trials.reset_index(inplace=True)
@@ -97,36 +99,13 @@ class Experiment:
                 interface_outputs[interface_name] = interface_outputs[interface_name].append(interface.output)
               else:
                 interface_outputs[interface_name] = interface.output
-      interface_outputs['BeGaze'].to_csv(os.path.join(self.config['output_path'], task_name+".txt"), sep="\t")
-      # task_output.to_csv(os.path.join(self.config['output_path'], task_name+".txt"), sep="\t")
-      
+      # interface_outputs['BeGaze'].to_csv(os.path.join(self.config['output_path'], task_name+".txt"), sep="\t", float_format='%11.2f')
     pass
 
   @staticmethod
   def compile_config(path):
-    schema = Schema({
-        'data_path': str,
-        'output_path': str,
-        'interfaces': [str],
-        'tasks': {
-          str: {
-            'ID': int,
-            'interfaces': {
-              str: {
-                'files': Or({str:str}, str),
-                Optional('labels'): {
-                  str: [int, int, str]
-                },
-                Optional('ROI'): [{
-                  'path': str, 'files': str, 'color': And([int], lambda x: len(x)==3)
-                }]
-              }
-            }
-          }
-        }
-      })
     default = yaml.load(open(resource_filename('pypsych.defaults', 'config.yaml'), 'r'))
-    return schema.validate(default)
+    return default
 
 
 

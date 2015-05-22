@@ -1,0 +1,21 @@
+# Task-specific configurations
+Mock1:
+    Biopac:
+        Luke:
+            duration: 1000
+            bins: 1
+            flags: {Group1: 0}
+        Leia:
+            duration: 2000
+            bins: 2
+            flags: {Group1: 0, Group2: 1}
+        Han:
+            duration: 1000
+            bins: 1
+            flags: {Group3_SubgroupA: 2, Group3_SubgroupB: 3}
+Mock2:
+    Biopac:
+        Darth:
+            duration: 1000
+            bins: 1
+            flags: 0

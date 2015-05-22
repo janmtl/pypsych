@@ -2,7 +2,7 @@
 import os, re
 import pandas as pd
 import numpy  as np
-from scipy import ndimage, misc
+from scipy import ndimage, misc, stats
 from itertools import product
 import logging
 
@@ -11,6 +11,9 @@ def encodeMask(lst):
 
 def nans(x):
   return np.isnan(x).sum()
+
+def sem(x):
+  return x.sem(axis=0)
 
 class BeGaze:
   def __init__(self, config):
@@ -27,7 +30,7 @@ class BeGaze:
     self.output_columns = ['Subject_ID', 'Event_ID']
     for label in self.label_configs:
       self.output_columns.extend([
-        label['event_type'] + '_' + str(x[0]) + '_' + x[1] for x in product(range(label['n_bins']), ['VAR', 'VAL', 'COUNT', 'NANS'])
+        label['event_type'] + '_' + str(x[0]) + '_' + x[1] for x in product(range(label['n_bins']), ['MEAN', 'SEM', 'COUNT', 'NANS'])
       ])
 
     self.masks = pd.DataFrame(columns = ['Event_ID', 'Coder', 'Area', 'Mask', 'Path'])
@@ -67,6 +70,12 @@ class BeGaze:
       temp_labels.loc[temp_pos, 'N_Bins']         = label_config['n_bins']
       labels.update(temp_labels)
     labels.dropna(axis = 0, how = 'any', inplace = True)
+    labels[['Start_Time', 'Event_Duration']] = labels[['Start_Time', 'Event_Duration']].astype(float)
+
+    duplicate_labels = labels[labels.duplicated(subset=['Event_ID', 'Event_Type'])]
+    grouped = duplicate_labels.groupby(['Event_ID', 'Event_Type'])
+    for idx, label in grouped:
+      labels.loc[label.index, 'Event_ID'] = label['Event_ID'] + np.arange(1,label.shape[0]+1,1).astype(str)
 
     labels['End_Time'] = labels['Start_Time'] + labels['Event_Duration']
     labels = labels.drop(['Event', 'Event_Duration'], 1)
@@ -87,7 +96,7 @@ class BeGaze:
                                                                 stop  = samples.index[-1],
                                                                 num   = label['N_Bins']+1)
                                             ))
-        sub_diam_stats  = subgrouped['Diameter'].agg({'VAL': np.mean, 'VAR': np.std, 'COUNT': np.size, 'NANS': nans})
+        sub_diam_stats  = subgrouped['Diameter'].agg({'MEAN': np.mean, 'SEM': sem, 'COUNT': np.size, 'NANS': nans})
         if 'ROI' in self.config.keys():
           sub_roi_stats = subgrouped[['posx', 'posy']].apply(lambda x: self.apply_masks(x, event_id))
           sub_stats = pd.merge(sub_diam_stats, sub_roi_stats, left_index=True, right_index=True)

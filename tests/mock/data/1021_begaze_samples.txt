@@ -1,0 +1,31 @@
+#
+# Comments
+#
+Other Column 1, Other Column 2, Time, L Pupil Diameter [mm], L POR X [px], L POR Y [px], L Event Info
+1, 1, 2000, 1.31, 450, 450, Fixation
+1, 1, 2001, 1.32, 440, 450, Fixation
+1, 1, 2002, 1.33, 420, 450, Fixation
+1, 1, 2003, 1.34, 460, 450, Fixation
+1, 1, 2004, 1.35, 420, 450, Fixation
+1, 1, 2005, 1.36, 440, 450, Fixation
+1, 1, 2006, 1.37, 440, 450, Fixation
+1, 1, 2007, 1.38, 440, 450, Fixation
+1, 1, 2008, 1.39, 440, 450, Fixation
+1, 1, 2009, 1.30, 450, 450, Fixation
+1, 1, 2010, 1.31, 450, 450, Fixation
+1, 1, 2011, 1.32, 430, 450, Fixation
+1, 1, 2012, 1.33, 430, 450, Fixation
+1, 1, 2013, 1.34, 470, 450, Fixation
+1, 1, 2014, 1.35, 470, 450, Fixation
+1, 1, 2015, 1.36, 470, 450, Fixation
+1, 1, 2016, 1.37, 480, 450, Fixation
+1, 1, 2017, 1.38, 480, 450, Fixation
+1, 1, 2018, 1.39, 490, 450, Fixation
+1, 1, 2019, 1.30, 490, 450, Fixation
+1, 1, 2020, 1.31, 400, 450, Fixation
+1, 1, 2021, 1.32, 400, 450, Fixation
+1, 1, 2022, 1.33, 400, 450, Fixation
+1, 1, 2023, 1.34, 400, 450, Fixation
+1, 1, 2024, 1.35, 460, 450, Fixation
+1, 1, 2025, 1.36, 450, 450, Fixation
+1, 1, 2026, 1.38, 440, 450, Fixation

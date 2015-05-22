@@ -1,0 +1,15 @@
+# Task-specific file patterns
+Mock1:
+    BeGaze:
+        samples: '(?P<Subject>[0-9]{3})(?P<Task_Order>[0-9])_begaze_samples.txt'
+        labels:  '(?P<Subject_ID>[0-9]{3})(?P<Task_O>[0-9])_begaze_labels.txt'
+    Biopac:
+        samples: 'Mock1_(?P<Subject_ID>[0-9]{3})(?P<Task_Order>1)_biopac_samples.txt'
+        labels:  'Mock1_(?P<Subject_ID>[0-9]{3})(?P<Task_Order>1)_biopac_labels.mat'
+Mock2:
+    BeGaze:
+        samples: '(?P<Subject_ID>[0-9]{3})(?P<Task_Order>[0-9])_begaze_samples.txt'
+        labels:  '(?P<Subject_ID>[0-9]{3})(?P<Task_Order>[0-9])_begaze_labels.txt'
+    Biopac:
+        samples: 'Mock2_(?P<Subject_ID>[0-9]{3})(?P<Tsk_Order>2)_biopac_samples.txt'
+        labels:  'Mock2_(?P<Subject_ID>[0-9]{3})(?P<Task_Order>2)_biopac_labels.mat'

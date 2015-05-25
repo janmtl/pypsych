@@ -1,0 +1,9 @@
+# Task-specific configurations
+Mock1:
+    BeGaze:
+        Key: 'Mock1 BeGaze'
+Mock2:
+    BeGaze:
+        Key: 'Mock2 BeGaze'
+    Biopac:
+        Key: 'Mock2 Biopac'

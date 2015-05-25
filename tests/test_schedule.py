@@ -2,22 +2,22 @@
 # -*- coding: utf-8 -*-
 
 """
-test_Schedule
+test_schedule
 ----------------------------------
 
 Tests for `Schedule` class provided in pypsych.schedule module.
 """
 
+
 import unittest
 import yaml
 import schema
 import pandas as pd
-from pkg_resources import resource_filename
-from pypsych.schedule import Schedule
 pd.set_option('display.max_rows', 50)
 pd.set_option('display.max_columns', 500)
 pd.set_option('display.width', 1000)
-
+from pkg_resources import resource_filename
+from pypsych.schedule import Schedule
 
 def assert_filesdfs_equality(df1, df2):
     """
@@ -52,29 +52,31 @@ class ScheduleLoadingTestCases(unittest.TestCase):
     """
 
     def setUp(self):
-        self.schedule_path = resource_filename('tests.mock',
+        self.schedule_path = resource_filename('tests.schedule',
                                                'schedule.yaml')
         self.mock_schedule = yaml.load(open(self.schedule_path, 'r'))
 
     def test_load_no_file(self):
         """Should throw an error when yaml file does not exist."""
         with self.assertRaisesRegexp(IOError, '[Errno 2]'):
-            schedule = Schedule(path=resource_filename('tests.mock',
+            schedule = Schedule(path=resource_filename('tests.schedule',
                                                        'notexist.xyz'))
             schedule.load()
 
     def test_load_bad_yaml_file(self):
         """Should throw an error when file is not valid yaml."""
         with self.assertRaises(yaml.parser.ParserError):
-            schedule = Schedule(path=resource_filename('tests.mock',
-                                                       'badyaml.yaml'))
+            schedule = Schedule(path=resource_filename('tests.schedule',
+                                                       'bad_yaml.yaml'))
             schedule.load()
 
     def test_load_bad_yaml_schema(self):
         """Should throw an error when yaml file does match schema."""
         with self.assertRaises(schema.SchemaError):
-            schedule = Schedule(path=resource_filename('tests.mock',
-                                                       'badschema.yaml'))
+            schedule = Schedule(path=resource_filename(
+                'tests.schedule',                          
+                'bad_schema.yaml'
+                ))
             schedule.load()
 
     def test_load_good_schedule(self):
@@ -91,17 +93,17 @@ class ScheduleCompilationTestCases(unittest.TestCase):
 
     def setUp(self):
         # Load in the mock schedule configuration
-        self.schedule_path = resource_filename('tests.mock',
+        self.schedule_path = resource_filename('tests.schedule',
                                                'schedule.yaml')
         self.mock_schedule = yaml.load(open(self.schedule_path, 'r'))
-        self.data_path = "tests/mock/data"
+        self.data_path = "tests/data"
 
         # Load in the mock results of searching the data path
-        self.files_df = pd.read_csv(resource_filename('tests.mock',
+        self.files_df = pd.read_csv(resource_filename('tests.schedule',
                                                       'files_df.txt'))
 
         # Load in the mock results of resolving Task_Order ambiguity
-        self.sched_df = pd.read_csv(resource_filename('tests.mock',
+        self.sched_df = pd.read_csv(resource_filename('tests.schedule',
                                                       'sched_df.txt'))
 
         # Construct the test Schedule object and load in the configuration
@@ -110,7 +112,7 @@ class ScheduleCompilationTestCases(unittest.TestCase):
 
     def test_searching_for_files(self):
         """Returns all file pattern matches in a given directory."""
-        files_df = self.schedule.search(self.mock_schedule, 'tests/mock')
+        files_df = self.schedule.search(self.mock_schedule, 'tests/data')
         assert_filesdfs_equality(files_df, self.files_df)
 
     def test_compile_schedule(self):
@@ -118,6 +120,14 @@ class ScheduleCompilationTestCases(unittest.TestCase):
         self.schedule.compile(self.data_path)
         assert_filesdfs_equality(self.schedule.sched_df, self.sched_df)
 
+    def test_get_file_paths(self):
+        """Check that the file paths dictionary is correctly extracted from
+        the sched_df."""
+        valid_file_paths = {'labels': 'tests/data/1011_begaze_labels.txt',
+                            'samples': 'tests/data/1011_begaze_samples.txt'}
+        self.schedule.compile(self.data_path)
+        file_paths = self.schedule.get_file_paths(101, 'Mock1', 'BeGaze')
+        self.assertEqual(valid_file_paths, file_paths)
 
 class ScheduleValidationTestCases(unittest.TestCase):
     """
@@ -127,35 +137,35 @@ class ScheduleValidationTestCases(unittest.TestCase):
 
     def setUp(self):
         # Load in the mock schedule configuration
-        self.good_schedule_path = resource_filename('tests.mock',
+        self.good_schedule_path = resource_filename('tests.schedule',
                                                     'schedule.yaml')
         self.good_schedule = yaml.load(open(self.good_schedule_path, 'r'))
-        self.badinterfacenames = yaml.load(open(resource_filename(
-            'tests.mock',
-            'badinterfacenames.yaml'
+        self.baddatasourcenames = yaml.load(open(resource_filename(
+            'tests.schedule',
+            'bad_data_source_names.yaml'
             ), 'r'))
         self.badpatterns = yaml.load(open(resource_filename(
-            'tests.mock',
-            'badpatterns.yaml'
+            'tests.schedule',
+            'bad_file_patterns.yaml'
             ), 'r'))
 
-        # Set the valid interface names
+        # Set the valid data source names
         self.valid_names = ['Biopac', 'BeGaze']
 
         # Construct the test Schedule object and load in the configuration
         self.schedule = Schedule(path=self.good_schedule_path)
 
-    def test_bad_interface_names(self):
-        """Invalid interface names are not accepted."""
+    def test_bad_data_source_names(self):
+        """Invalid data source names are not accepted."""
         with self.assertRaises(Exception):
-            self.schedule.validate_interface_names(
-                self.badinterfacenames,
+            self.schedule.validate_data_source_names(
+                self.baddatasourcenames,
                 self.valid_names
                 )
 
-    def test_good_interface_names(self):
-        """Valid interface names are accepted."""
-        self.schedule.validate_interface_names(
+    def test_good_data_source_names(self):
+        """Valid data source names are accepted."""
+        self.schedule.validate_data_source_names(
             self.good_schedule,
             self.valid_names
             )
@@ -164,7 +174,7 @@ class ScheduleValidationTestCases(unittest.TestCase):
         """File patterns that do not provide Subject_ID and Task_Order are
         not accepted."""
         with self.assertRaises(Exception):
-            self.schedule.validate_patterns(self.badinterfacenames)
+            self.schedule.validate_patterns(self.baddatasourcenames)
 
     def test_good_file_patterns(self):
         """File patterns that provide Subject_ID and Task_Order are accepted."""

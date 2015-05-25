@@ -1,0 +1,20 @@
+# Task-specific configurations
+Mock1:
+    Luke: 2000
+    Han:
+        duration: 1000
+        bins: 1
+        pattern: '(?P<Event_ID>[0-9\.]+)_Han_(?P<Event_Group>Solo)'
+    Biopac:
+        Luke:
+            duration: 1000
+            bins: 1
+            flags: {Group1: 'test'}
+        Leia:
+            duration: 2000
+            bins: 2
+            flags: {Group1: {MORE_LAYERS: 0, Group2: 1}}
+        Han:
+            duration: 1000
+            bins: 1
+            flags: {Group3_SubgroupA: 2, Group3_SubgroupB: 3}

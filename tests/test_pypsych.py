@@ -9,7 +9,7 @@ Tests for `pypsych` module.
 """
 
 import unittest
-# from pypsych import pypsych
+from pypsych import pypsych
 # import numpy as np
 # import pandas as pd
 # import logging

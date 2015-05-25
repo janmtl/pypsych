@@ -7,27 +7,30 @@ for compiling a schedule of files to process.
 
 Methods:
     compile: shortcut for validating the loaded configuration, then
-        performing the search, and _resolve functions
+      performing the search, and _resolve functions
     
     load: load the schedule.yaml file into a dictionary
     
+    get_file_paths: return a dictionary of files for a given subject, task, and
+      data source.
+
     search: search the data_path for all files matching the patterns.
 
     validate_schema: validate yaml contents against the schedule configuration
-        schema.
+      schema.
     
-    validate_interface_names: validates that the interface names contained in
-        the configuration match a given list of possible interface names
+    validate_data_source_names: validates that the data source names contained
+    in the configuration match a given list of possible data source names
     
     validate_patterns: validates that the regex patterns return named fields
-        matching a list of required named fields
+      matching a list of required named fields
 
 Configuration schema (YAML):
-    [task_name (str):
-        [interface_name (str):
-            [filetype (str): pattern (str)]
-        ]
+  [task_name (str):
+    [data_source_name (str):
+      [filetype (str): pattern (str)]
     ]
+  ]
 """
 from schema import Schema
 import yaml
@@ -37,14 +40,15 @@ import pandas as pd
 
 class Schedule(object):
     """
-    An object for scheduling files to be processed by interfaces.
+    An object for scheduling files to be processed by data sources.
 
     Args:
-        path (str): path to YAML schedule configuration file.
+      path (str): path to YAML schedule configuration file.
 
     Attributes:
-        path (str): path to YAML schedule configuration file.
-        sched_df (pands.DataFrame): a Pandas DataFrame listing all files found
+      path (str): path to YAML schedule configuration file.
+      raw (dict): the dictionary resulting from the YAML configuration.
+      sched_df (pands.DataFrame): a Pandas DataFrame listing all files found
     """
 
     def __init__(self, path):
@@ -61,13 +65,33 @@ class Schedule(object):
         files_df = self.search(self.raw, data_path)
         self.sched_df = self._resolve(files_df)
 
+    def get_file_paths(self, subject_id, task_name, data_source_name):
+        """Return all a dictionary of all files for a given subject, task,
+        and data source."""
+        if self.sched_df.empty:
+            raise Exception('Schedule is empty, try Schedule.compile(path).')
+        sub_df = self.sched_df[
+            (self.sched_df['Subject_ID'] == str(subject_id))
+            & (self.sched_df['Task_Name'] == task_name)
+            & (self.sched_df['Data_Source_Name'] == data_source_name)
+            ]
+        if sub_df.empty:
+            raise Exception(
+                '({}, {}, {}) not found in schedule.'.format(subject_id,
+                                                             task_name,
+                                                             data_source_name)
+                )
+        list_of_files = sub_df[['File', 'Path']].to_dict('records')
+        files_dict = {ds['File']: ds['Path'] for ds in list_of_files}
+        return files_dict
+
     @staticmethod
     def search(raw, data_path):
         """Search the data path for matching file patterns and return a pandas
         DataFrame of the results."""
         files_dict = []
         for task_name, task in raw.iteritems():
-            for interface_name, patterns in task.iteritems():
+            for data_source_name, patterns in task.iteritems():
                 for pattern_name, pattern in patterns.iteritems():
                     for root, _, files in os.walk(data_path):
                         for filepath in files:
@@ -75,7 +99,7 @@ class Schedule(object):
                             if file_match:
                                 file_dict = file_match.groupdict()
                                 file_dict['Task_Name'] = task_name
-                                file_dict['Interface_Name'] = interface_name
+                                file_dict['Data_Source_Name'] = data_source_name
                                 file_dict['File'] = pattern_name
                                 file_dict['Path'] = os.path.join(root, filepath)
                                 files_dict.append(file_dict)
@@ -88,11 +112,11 @@ class Schedule(object):
         return a subset of the Data Frame.
 
         Args:
-            files_df (pandas.DataFrame): a DataFrame resulting from
-            Schedule.search().
+          files_df (pandas.DataFrame): a DataFrame resulting from
+          Schedule.search().
         """
         counter = files_df.groupby(['Subject_ID',
-                                    'Interface_Name',
+                                    'Data_Source_Name',
                                     'File',
                                     'Task_Name'])['Task_Order'].count()
         maps = counter[counter == 1]
@@ -106,7 +130,7 @@ class Schedule(object):
                                                'Task_Name',
                                                'Task_Order',
                                                'File',
-                                               'Interface_Name',
+                                               'Data_Source_Name',
                                                'Path']]
         return sched_df
 
@@ -118,21 +142,21 @@ class Schedule(object):
         return schema.validate(raw)
 
     @staticmethod
-    def validate_interface_names(raw, interface_names):
+    def validate_data_source_names(raw, data_source_names):
         """
-        Validate that all interface names are contained in the
-        interface_names list.
+        Validate that all data source names are contained in the
+        data_source_names list.
 
         Args:
-            interface_names (list(str)): list of valid interface names
-            implemented in pypsych.
+          data_source_names (list(str)): list of valid data source names
+          implemented in pypsych.
         """
         for _, task in raw.iteritems():
-            for interface_name in task.keys():
-                if not interface_name in interface_names:
+            for data_source_name in task.keys():
+                if not data_source_name in data_source_names:
                     raise Exception(
-                        'Schedule could not validate interface ',
-                        interface_name
+                        'Schedule could not validate data source ',
+                        data_source_name
                         )
 
     @staticmethod
@@ -140,8 +164,8 @@ class Schedule(object):
         """Validate that all file pattern regex expressions yield Task_Order
         and Subject_ID fields."""
         for _, task  in raw.iteritems():
-            for _, interface in task.iteritems():
-                for _, pattern in interface.iteritems():
+            for _, data_source in task.iteritems():
+                for _, pattern in data_source.iteritems():
                     compiled_pattern = re.compile(pattern)
                     for group_name in compiled_pattern.groupindex.keys():
                         if not group_name in ['Task_Order', 'Subject_ID']:

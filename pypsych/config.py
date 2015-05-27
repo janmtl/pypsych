@@ -6,9 +6,9 @@ Includes the Config class, validation functions, and shortcut functions to
 frequently accessed elements of the configuration dictionary.
 
 Schema (YAML):
-  [task_name (str):
-    [data_source_name (str): data_source_configuration (dict)]
-  ]
+  {task_name (str):
+    {data_source_name (str): data_source_configuration (dict)}
+  }
 """
 from schema import Schema
 import yaml

@@ -93,6 +93,10 @@ class ConfigValidationTestCases(unittest.TestCase):
             self.valid_names
             )
 
+    def tearDown(self):
+        """Clear the config memoization cache."""
+        self.config.get_subconfig.cache.clear()
+
 class ConfigShortcutsTestCases(unittest.TestCase):
     """
     Tests for the shortcut functions provided by the Config class.
@@ -113,7 +117,7 @@ class ConfigShortcutsTestCases(unittest.TestCase):
         valid_list = ['Mock1', 'Mock2']
         self.assertEqual(sorted(test_list), valid_list)
 
-    def test_data_source_names_attribute(self):
+    def test_data_source_names(self):
         """Test the Config.data_source_names attribute."""
         test_list = self.config.data_source_names
         valid_list = ['BeGaze', 'Biopac']
@@ -125,6 +129,9 @@ class ConfigShortcutsTestCases(unittest.TestCase):
         valid_dict = {'Key': 'Mock1 BeGaze'}
         self.assertEqual(test_dict, valid_dict)
 
+    def tearDown(self):
+        """Clear the config memoization cache."""
+        self.config.get_subconfig.cache.clear()
 
 if __name__ == '__main__':
     unittest.main()

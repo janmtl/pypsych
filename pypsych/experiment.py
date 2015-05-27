@@ -1,113 +1,108 @@
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
-"""
-Includes the Experiment and Schedule_Item classes
-"""
 
-
-import os, re
-import yaml
+"""
+Includes the Experiment class.
+"""
 import pandas as pd
 import numpy  as np
-from pkg_resources import resource_filename
-from schema import Schema, And, Or, Optional, SchemaError
-from collections import namedtuple
-import logging
+from config import Config
+from schedule import Schedule
+from data_sources.begaze import BeGaze
+from data_sources.biopac import Biopac
 
-from interfaces.BeGaze import BeGaze
-from interfaces.Biopac import Biopac
+DATA_SOURCES = {'BeGaze': BeGaze, 'Biopac': Biopac}
 
-class Experiment:
-  def __init__(self, **kwargs):
-    # Load in the configuration
-    self.config        = self.compile_config(kwargs.get('config_path', resource_filename('pypsych.defaults', 'config.yaml')))
-    self.tasks         = {}
-    self.schedule      = pd.DataFrame(columns = [u"Subject_ID", u"Task_ID", u"Task_Name", u"Task_Order", u"Include?", u"Warning"])
-    self.schedule_path = os.path.join(self.config['data_path'],'pypsych_schedule.txt')
+class Experiment(object):
+    """
+    Main task runner for pypsych.
+    """
+    def __init__(self, config_path, schedule_path, data_path):
+        self.config_path = config_path
+        self.schedule_path = schedule_path
+        self.data_path = data_path
+        self.config = Config(self.config_path)
+        self.schedule = Schedule(self.schedule_path)
 
-  def compile_interfaces(self):
-    # Get a list of interfaces from the config file
-    tasks = self.config['tasks']
-    
-    for task_name, task in tasks.iteritems():
-      for interface_name in self.config['interfaces']:
-        if interface_name == 'BeGaze': task['BeGaze'] = BeGaze(task['interfaces'][interface_name])
-        if interface_name == 'Biopac': task['Biopac'] = Biopac(task['interfaces'][interface_name])
+        # Output will be stored in a massive pandas Panel
+        self.output_dict = {}
+        self.output = pd.Panel()
 
-    self.tasks = tasks
+        # Data sources will be preserved in memery across trials. This is to
+        # ensure that the future Masker data source does not read hundreds of
+        # bitmaps repeatedly.
+        self.data_sources = {}
 
-  def compile_schedule(self):
-    if os.path.isfile(self.schedule_path):
-      self.schedule = pd.read_csv(self.schedule_path, delimiter="\t")
-      self.schedule.sort(['Task_Name', 'Subject_ID'], inplace = True)
-      miix = pd.MultiIndex.from_arrays([self.schedule['Task_Name'], self.schedule['Subject_ID']])
-      self.schedule.set_index(miix, inplace = True)
-      self.schedule.drop(['Task_Name', 'Subject_ID'], axis = 1, inplace = True)
-    else:
-      for interface_name in self.config['interfaces']:
+    def load(self):
+        """Create and load the configuration and schedule."""
+        self.config.load()
+        self.schedule.load()
 
-        for task_name, task in self.config['tasks'].iteritems():
-          patterns = task['interfaces'][interface_name]['files']
-          if type(patterns) == str: patterns = {'main': patterns}    
-          for pattern_name, pattern in patterns.iteritems():
+    def compile(self):
+        """
+        Compile the schedule on the data_path and spin-up the data sources
+        for each task_name.
+        """
+        self.schedule.compile(self.data_path)
 
-            for root, dirs, files in os.walk(self.config['data_path']):
-              for f in files: 
-                m = re.match(pattern, f)
-                if m:
-                  d = m.groupdict()
-                  pos = (self.schedule['Subject_ID'] == d['Subject_ID']) & (self.schedule['Task_Order'] == d['Task_Order'])
-                  if pos.any():
-                    self.schedule.loc[pos, interface_name+"_"+pattern_name] = os.path.join(root, f)
-                  else:
-                    d['Task_Name'] = task_name
-                    d['Task_ID']   = task['ID']
-                    d[interface_name+"_"+pattern_name] = os.path.join(root, f)
-                    self.schedule = self.schedule.append(pd.DataFrame(d, index = [0]), ignore_index = True)
+        task_datas = self.schedule.\
+                        sched_df[['Task_Name', 'Data_Source_Name']].\
+                        drop_duplicates()
 
-      sch_nans = pd.isnull(self.schedule.drop(['Warning', 'Include?'], axis=1)).any(1)
-      self.schedule.loc[sch_nans, 'Include?'] = False
-      self.schedule['Include?'].fillna(True, inplace=True)
-      self.schedule.loc[sch_nans, 'Warning'] = self.schedule.loc[sch_nans].drop('Warning', axis=1).apply(
-        lambda x: "Missing "+", ".join(self.schedule.columns[pd.isnull(x)])
-        , axis=1)
+        for _, task_data in task_datas.iterrows():
+            subconfig = self.config.get_subconfig(*tuple(task_data))
+            subschedule = self.schedule.get_subschedule(*tuple(task_data))
+            self.data_sources[tuple(task_data)] = \
+                DATA_SOURCES[task_data['Data_Source_Name']](subconfig,
+                                                            subschedule)
 
-      self.schedule.sort(['Task_Name', 'Subject_ID'], inplace = True)
-      miix = pd.MultiIndex.from_arrays([self.schedule['Task_Name'], self.schedule['Subject_ID']])
-      self.schedule.set_index(miix, inplace = True)
-      self.schedule.drop(['Task_Name', 'Subject_ID', 'Task_ID'], axis = 1, inplace = True)
-      self.schedule.to_csv(self.schedule_path, sep = "\t")
-    pass
+    def process(self):
+        """
+        Iterate over the (subject, task) pairs and process each data source.
+        """
 
-  def consume_schedule(self):
-    for task_name, task in self.tasks.iteritems():
-      print 'Processing '+task_name
-      trials = self.schedule.loc[task_name]
-      trials = trials[trials['Include?']]
-      trials.reset_index(inplace=True)
+        grouped = self.schedule.sched_df.groupby(['Subject_ID',
+                                                  'Task_Name',
+                                                  'Data_Source_Name'])
+        # Iterate over subjects, tasks, and data sources
+        for idx, _ in grouped:
+            # Fetch the file paths from the schedule for this trial
+            file_paths = self.schedule.get_file_paths(*idx)
+            subject_id, task_name, data_source_name = idx
+            ds_id = tuple([task_name, data_source_name])
 
-      task_output = trials[['Subject_ID', 'Task_Order']]
-      interface_outputs = {}
+            # Load and process the data source in question
+            self.data_sources[ds_id].load(file_paths)
+            self.data_sources[ds_id].process()
 
-      for idx, trial in trials.iterrows():
-        for interface_name, interface in task.iteritems():
-          if interface_name not in ('interfaces', 'ID', 'index', 'columns'):
-            files = trial.filter(regex= r'^'+interface_name).to_dict()
-            interface.load(files)
-            interface.process(trial['Subject_ID'])
-            if interface_name == 'BeGaze':
-              if interface_name in interface_outputs.keys():
-                interface_outputs[interface_name] = interface_outputs[interface_name].append(interface.output)
-              else:
-                interface_outputs[interface_name] = interface.output
-      # interface_outputs['BeGaze'].to_csv(os.path.join(self.config['output_path'], task_name+".txt"), sep="\t", float_format='%11.2f')
-    pass
+            # Iterate over the outputs and append them to existing output data
+            # frames if possible
+            for p_id, panel in self.data_sources[ds_id].output.iteritems():
+                # Insert a column for the subject id since the data sources are
+                # ignorant of this
+                panel['Subject_ID'] = subject_id
 
-  @staticmethod
-  def compile_config(path):
-    default = yaml.load(open(resource_filename('pypsych.defaults', 'config.yaml'), 'r'))
-    return default
+                # Panels are indexed by (task_name, channel, statistic)
+                panel_id = (task_name,)+p_id
 
+                # If the panel already exists, append to it, otherwise save it
+                if panel_id in self.output_dict.keys():
+                    self.output_dict[panel_id] = pd.concat(
+                        [self.output_dict[panel_id], panel],
+                        ignore_index=True)
+                else:
+                    self.output_dict[panel_id] = panel
 
+        # Turn the dictionary of outputs into a pandas Panel object
+        self.output = pd.Panel(self.output_dict)
+
+    def save_outputs(self, output_path):
+        """Save all of the items in the self.output Panel object to seperate
+        files named using the the index (task_name, channel, statistic)."""
+
+        for idx, item in self.output.iteritems():
+            item_path = output_path+'/'+'_'.join(idx)+'.txt'
+            item.to_csv(item_path, sep="\t")
 
 
 

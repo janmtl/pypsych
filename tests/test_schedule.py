@@ -113,12 +113,14 @@ class ScheduleCompilationTestCases(unittest.TestCase):
     def test_searching_for_files(self):
         """Returns all file pattern matches in a given directory."""
         files_df = self.schedule.search(self.mock_schedule, 'tests/data')
-        assert_filesdfs_equality(files_df, self.files_df)
+        self.assertTrue(assert_filesdfs_equality(files_df, self.files_df))
 
     def test_compile_schedule(self):
         """Returns all a task_order resolved file table after search."""
         self.schedule.compile(self.data_path)
-        assert_filesdfs_equality(self.schedule.sched_df, self.sched_df)
+        self.assertTrue(assert_filesdfs_equality(
+            self.schedule.sched_df,
+            self.sched_df))
 
     def test_get_file_paths(self):
         """Check that the file paths dictionary is correctly extracted from
@@ -128,6 +130,17 @@ class ScheduleCompilationTestCases(unittest.TestCase):
         self.schedule.compile(self.data_path)
         file_paths = self.schedule.get_file_paths(101, 'Mock1', 'BeGaze')
         self.assertEqual(valid_file_paths, file_paths)
+
+    def test_get_subschedule(self):
+        """Test the task, data source schedule getter."""
+        test_dict = self.schedule.get_subschedule('Mock1', 'BeGaze')
+        valid_dict = {'samples': ''.join(['(?P<Subject_ID>[0-9]{3})',
+                                          '(?P<Task_Order>[0-9])',
+                                          '_begaze_samples.txt']),
+                      'labels': ''.join(['(?P<Subject_ID>[0-9]{3})',
+                                         '(?P<Task_Order>[0-9])',
+                                         '_begaze_labels.txt'])}
+        self.assertEqual(test_dict, valid_dict)
 
 class ScheduleValidationTestCases(unittest.TestCase):
     """

@@ -1,0 +1,7 @@
+	Duration	Event_Group	Event_ID	Event_Order	Event_Type	N_Bins	Start_Time
+2	1000	Skywalker	52528.457150133.735	2	Luke	1	1665
+3	4000	Solo	83328729.	3	Han	3	2665
+4	4000	Bolo	.6.93751569.0346	4	Han	3	6665
+6	2000	Skyhopper	6178	6	Leia	2	11218
+10	1000	Skywalker	6.2446	10	Luke	1	15306
+11	4000	Bolo	8188	11	Han	3	16306

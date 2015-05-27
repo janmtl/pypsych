@@ -1,0 +1,4 @@
+,bins,duration,event_type,pattern
+0,1,1000,Luke,(?P<Event_ID>[0-9\.]+)_Luke_(?P<Event_Group>Skywalker)
+1,2,2000,Leia,(?P<Event_ID>[0-9\.]+)_Leia_(?P<Event_Group>Skywalker)
+2,1,1000,Han,(?P<Event_ID>[0-9\.]+)_Han_(?P<Event_Group>Solo)

@@ -1,0 +1,14 @@
+	Bin_Number	Event_Group	Event_ID	Event_Order	Event_Type	L Diameter	NANS	Pos X	Pos Y
+0	0	Skywalker	52528.457150133.735	2	Luke	4.08	17	477	746
+1	0	Solo	83328729.	3	Han	6.9	12	778	480
+2	1	Solo	83328729.	3	Han	3.92	8	373	656
+3	2	Solo	83328729.	3	Han	3.59	11	176	591
+4	0	Bolo	.6.93751569.0346	4	Han	5.72	4	226	337
+5	1	Bolo	.6.93751569.0346	4	Han	3.62	5	765	182
+6	2	Bolo	.6.93751569.0346	4	Han	5.76	6	888	573
+7	0	Skyhopper	6178	6	Leia	3.21	3	113	470
+8	1	Skyhopper	6178	6	Leia	3.36	7	73	250
+9	0	Skywalker	6.2446	10	Luke	6.45	21	79	385
+10	0	Bolo	8188	11	Han	6.81	3	825	397
+11	1	Bolo	8188	11	Han	3.94	3	796	469
+12	2	Bolo	8188	11	Han	6.73	0	40	544

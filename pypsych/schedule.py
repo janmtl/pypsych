@@ -26,17 +26,32 @@ Methods:
       matching a list of required named fields
 
 Configuration schema (YAML):
-  [task_name (str):
-    [data_source_name (str):
-      [filetype (str): pattern (str)]
-    ]
-  ]
+  {task_name (str):
+    {data_source_name (str):
+      {filetype (str): pattern (str)}
+    }
+  }
 """
 from schema import Schema
 import yaml
 import os
 import re
 import pandas as pd
+import numpy as np
+import functools
+
+
+def memoize(obj):
+    cache = obj.cache = {}
+
+    @functools.wraps(obj)
+    def memoizer(*args, **kwargs):
+        key = str(args) + str(kwargs)
+        if key not in cache:
+            cache[key] = obj(*args, **kwargs)
+        return cache[key]
+    return memoizer
+
 
 class Schedule(object):
     """
@@ -60,10 +75,17 @@ class Schedule(object):
         """Load in the raw schedule configuration."""
         self.raw = self.validate_schema(yaml.load(open(self.path, 'r')))
 
+    @memoize
+    def get_subschedule(self, task_name, data_source_name):
+        """Fetches the schedule for a given task and data source."""
+        return self.raw[task_name][data_source_name]
+
     def compile(self, data_path):
         """Search the data path for the files to add to the schedule."""
         files_df = self.search(self.raw, data_path)
         self.sched_df = self._resolve(files_df)
+        self.sched_df[['Subject_ID', 'Task_Order']] = \
+            self.sched_df[['Subject_ID', 'Task_Order']].astype(np.int64)
 
     def get_file_paths(self, subject_id, task_name, data_source_name):
         """Return all a dictionary of all files for a given subject, task,
@@ -71,7 +93,7 @@ class Schedule(object):
         if self.sched_df.empty:
             raise Exception('Schedule is empty, try Schedule.compile(path).')
         sub_df = self.sched_df[
-            (self.sched_df['Subject_ID'] == str(subject_id))
+            (self.sched_df['Subject_ID'] == subject_id)
             & (self.sched_df['Task_Name'] == task_name)
             & (self.sched_df['Data_Source_Name'] == data_source_name)
             ]
@@ -103,7 +125,10 @@ class Schedule(object):
                                 file_dict['File'] = pattern_name
                                 file_dict['Path'] = os.path.join(root, filepath)
                                 files_dict.append(file_dict)
-        return pd.DataFrame(files_dict)
+        files_df = pd.DataFrame(files_dict)
+        files_df[['Subject_ID', 'Task_Order']] = \
+            files_df[['Subject_ID', 'Task_Order']].astype(np.int64)
+        return files_df
 
     @staticmethod
     def _resolve(files_df):

@@ -14,21 +14,29 @@ class DataSource(object):
     """
 
     def __init__(self, config, schedule):
-        self.config = config
-        self.schedule = schedule
-        self.files = {}
+        self.config = self._validate_config(config)
+        self.schedule = self._validate_schedule(schedule)
+        self.output = pd.Panel()
+        self.data = {}
 
     def load(self, file_paths):
-        """Loads all files as CSV."""
+        """By default, loads all files as TSV."""
         for file_type, file_path in file_paths.iteritems():
-            self.files[file_type] = pd.read_csv(file_path)
+            self.data[file_type] = pd.read_csv(file_path,
+                                               comment="#",
+                                               delimiter="\t",
+                                               skipinitialspace=True)
+
+    def process(self):
+        """Placeholder method for processing the loaded files."""
+        pass
 
     @staticmethod
-    def validate_config(raw):
+    def _validate_config(raw):
         """Placeholder method for validating configuration dicts."""
-        pass
+        return raw
 
     @staticmethod
-    def validate_schedule(raw):
+    def _validate_schedule(raw):
         """Placeholder method for validating schedule configuration dicts."""
-        pass
+        return raw

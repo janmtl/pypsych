@@ -49,3 +49,7 @@ docs/_build
 *.sublime-workspace
 *.pyc
 tests/output
+myrun.py
+myschedulerun.py
+test_output_heads.py
+specialfix.py

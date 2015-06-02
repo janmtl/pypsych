@@ -1,10 +1,3 @@
----
-# Global configuration
-data_path:   '/users/yan/dev-local/data'
-output_path: '/users/yan/dev-local/output'
-interfaces:  ['Biopac']
-
-# List of recognized tasks and their interface configurations
 tasks:
   Calibration:
     ID: 1

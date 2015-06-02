@@ -11,12 +11,6 @@ from scipy.io import loadmat
 from pypsych.data_source import DataSource
 from schema import Schema, Or
 
-def nans(x):
-  return np.isnan(x).sum()
-
-def sem(x):
-  return x.sem(axis=0)
-
 
 class Biopac(DataSource):
     def __init__(self, config, schedule):
@@ -31,9 +25,11 @@ class Biopac(DataSource):
                                            delimiter="\t",
                                            skipinitialspace=True,
                                            header=False,
+                                           index_col=False,
                                            names = ['bpm', 'rr', 'twave'])
+
         raw_mat = loadmat(file_paths['labels'])
-        events = raw_mat['events'][0]
+        events = raw_mat['events'][:,0]
         self.data['labels'] = pd.DataFrame({'flag': events},
                                            index = np.arange(events.size))
 
@@ -52,6 +48,7 @@ class Biopac(DataSource):
         self.data['samples'] = self._clean_samples(self.data['samples'])
         self.data['labels'] = self._clean_labels(self.data['labels'])
 
+
         label_config = self._label_config_to_df(self.config)
         
         # Combine the labels data with the labels configuration
@@ -64,23 +61,32 @@ class Biopac(DataSource):
         label_bins = self._create_label_bins(self.data['labels'])
         raw = self.data['samples']
 
-        statistics = {'VAL': np.mean, 'SEM': sem, 'COUNT': np.size, 'NANS':nans}
-        channel_dims = ['bpm', 'rr', 'twave']
-        panel_idx = product(channel_dims, statistics.keys())
+        panels = {
+            # bpm channel statistics
+            ('bpm', 'VAL'): np.mean,
+            ('bpm', 'SEM'): lambda x: x.sem(axis=0),
+            # rr channel statistics
+            ('rr', 'VAL'): np.mean,
+            ('rr', 'VAR'): np.var,
+            # twave channel statistics
+            ('twave', 'VAL'): np.mean,
+            ('twave', 'SEM'): lambda x: x.sem(axis=0)
+            }
+
         output = {}
-        for panel_id in panel_idx:
+        for panel, statistic in panels.iteritems():
             stats = []
-            new_panel = label_bins
+            new_panel = label_bins.copy(deep=True)
+            new_panel.drop(['Start_Time', 'End_Time'], axis=1, inplace=True)
             for _, label_bin in label_bins.iterrows():
                 selector = (raw.index.values >= label_bin['Start_Time']) \
                            & (raw.index.values < label_bin['End_Time'])
-                samples = raw[selector][panel_id[0]]
-                stat = statistics[panel_id[1]](samples)
-                stats.append(stat)
+                samples = raw[selector][panel[0]]
+                stats.append(statistic(samples))
 
-            new_panel['value'] = stats
-            output[panel_id] = new_panel
-
+            new_panel['_'.join(panel)] = stats
+            output[panel] = new_panel.sort('Event_Order')
+        
         self.output = output
 
     @staticmethod
@@ -88,12 +94,23 @@ class Biopac(DataSource):
         """Convert the label configuration dictionary to a data frame."""
         labels_list = []
         for event_type, label_config in config.iteritems():
-            for event_group, flag in label_config['pattern'].iteritems():
+            pattern = label_config['pattern']
+            if isinstance(pattern, dict):
+                for event_group, flag in label_config['pattern'].iteritems():
+                    labels_list.append({'Event_Type': event_type,
+                                        'Event_Group': event_group,
+                                        'Duration': label_config['duration'],
+                                        'N_Bins': label_config['bins'],
+                                        'flag': flag})
+            elif isinstance(pattern, int):
                 labels_list.append({'Event_Type': event_type,
-                                    'Event_Group': event_group,
+                                    'Event_Group': np.nan,
                                     'Duration': label_config['duration'],
                                     'N_Bins': label_config['bins'],
-                                    'flag': flag})
+                                    'flag': pattern})
+            else:
+                raise Exception('Bad Biopac config flag {}'.format(pattern))
+
         return pd.DataFrame(labels_list)
 
     @staticmethod
@@ -113,7 +130,7 @@ class Biopac(DataSource):
                                'Start_Time': start_times})
 
         labels = labels[(labels['flag'] != 255)]
-        labels['Event_Order'] = np.arange(len(labels['flag']))
+        # labels['Event_Order'] = np.arange(len(labels['flag']))
         return labels
 
     @staticmethod
@@ -121,7 +138,7 @@ class Biopac(DataSource):
         """
         .
         """
-        samples.index = samples.index*10
+        samples.index = samples.index*100
         return samples
 
     @staticmethod
@@ -131,6 +148,7 @@ class Biopac(DataSource):
         configuration dictionary.
         """
         labels = pd.merge(labels, config, on='flag')
+        labels.sort('Start_Time', inplace=True)
         return labels
 
     @staticmethod
@@ -140,9 +158,10 @@ class Biopac(DataSource):
         data frame."""
 
         total_bins = labels['N_Bins'].sum()
-        label_bins = pd.DataFrame(columns=['Event_Type', 'Event_Group',
-                                           'Event_Order', 'Start_Time',
-                                           'End_Time', 'Bin_Index'],
+        label_bins = pd.DataFrame(columns=['Event_ID','Event_Type',
+                                           'Event_Group', 'Event_Order',
+                                           'Start_Time', 'End_Time',
+                                           'Bin_Index'],
                                   index=np.arange(0,total_bins))
         idx = 0
         for _, label in labels.iterrows():
@@ -151,14 +170,15 @@ class Biopac(DataSource):
                                stop=(label['Start_Time'] + label['Duration']),
                                num=n_bins+1)
             label_info = np.tile(label.as_matrix(columns = ['Event_Type',
-                                                            'Event_Group',
-                                                            'Event_Order']),
+                                                            'Event_Group']),
                                  (n_bins, 1))
 
-            label_bins.iloc[idx:idx+n_bins, 0:3] = label_info
-            label_bins.iloc[idx:idx+n_bins, 3] = cuts[0:n_bins]
-            label_bins.iloc[idx:idx+n_bins, 4] = cuts[1:n_bins+1]
-            label_bins.iloc[idx:idx+n_bins, 5] = np.arange(0,n_bins,1)
+            label_bins.iloc[idx:idx+n_bins, 1] = np.nan
+            label_bins.iloc[idx:idx+n_bins, 1:3] = label_info
+            label_bins.iloc[idx:idx+n_bins, 3] = idx+np.arange(0,n_bins,1)
+            label_bins.iloc[idx:idx+n_bins, 4] = cuts[0:n_bins]
+            label_bins.iloc[idx:idx+n_bins, 5] = cuts[1:n_bins+1]
+            label_bins.iloc[idx:idx+n_bins, 6] = np.arange(0,n_bins,1)
             idx = idx + n_bins
 
         return label_bins
@@ -181,7 +201,7 @@ class Biopac(DataSource):
         # TODO(janmtl): improve this docstring
         schema = Schema({str: {'duration': Or(float, int),
                                'bins': int,
-                               'pattern': {str: int}}})
+                               'pattern': Or(int, {str: int})}})
 
         return schema.validate(raw)
 

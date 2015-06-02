@@ -10,11 +10,6 @@ from itertools import product
 from pypsych.data_source import DataSource
 from schema import Schema, Or
 
-def nans(x):
-  return np.isnan(x).sum()
-
-def sem(x):
-  return x.sem(axis=0)
 
 class BeGaze(DataSource):
     def __init__(self, config, schedule):
@@ -33,25 +28,29 @@ class BeGaze(DataSource):
         label_bins = self._create_label_bins(self.data['labels'])
         raw = self.data['samples']
 
-        statistics = {'VAL': np.mean, 'SEM': sem, 'COUNT': np.size, 'NANS':nans}
-        channel_dims = ['Diameter']
-        panel_idx = product(channel_dims, statistics.keys())
+        panels = {
+            # Diameter channel statistics
+            ('Diameter', 'VAL'): np.mean,
+            ('Diameter', 'SEM'): lambda x: x.sem(axis=0),
+            ('Diameter', 'COUNT'): np.size,
+            ('Diameter', 'NANS'): lambda x: np.isnan(x).sum(),
+            }
+
         output = {}
-        for panel_id in panel_idx:
+        for panel, statistic in panels.iteritems():
             stats = []
-            new_panel = label_bins
+            new_panel = label_bins.copy(deep=True)
+            new_panel.drop(['Start_Time', 'End_Time'], axis=1, inplace=True)
             for _, label_bin in label_bins.iterrows():
                 selector = (raw.index.values >= label_bin['Start_Time']) \
                            & (raw.index.values < label_bin['End_Time'])
-                samples = raw[selector][panel_id[0]]
-                stat = statistics[panel_id[1]](samples)
-                stats.append(stat)
+                samples = raw[selector][panel[0]]
+                stats.append(statistic(samples))
 
-            new_panel['value'] = stats
-            output[panel_id] = new_panel
-
+            new_panel['_'.join(panel)] = stats
+            output[panel] = new_panel.sort('Event_Order')
+        
         self.output = output
-
 
     def merge_data(self):
         """
@@ -228,18 +227,18 @@ class BeGaze(DataSource):
                                            'Bin_Index'],
                                   index=np.arange(0,total_bins))
         idx = 0
-        for _, label in labels.iterrows():
+        for event_order, label in labels.iterrows():
             n_bins = label['N_Bins']
             cuts = np.linspace(start=label['Start_Time'],
                                stop=(label['Start_Time'] + label['Duration']),
                                num=n_bins+1)
             label_info = np.tile(label.as_matrix(columns = ['Event_ID',
                                                             'Event_Type',
-                                                            'Event_Group',
-                                                            'Event_Order']),
+                                                            'Event_Group']),
                                  (n_bins, 1))
 
-            label_bins.iloc[idx:idx+n_bins, 0:4] = label_info
+            label_bins.iloc[idx:idx+n_bins, 0:3] = label_info
+            label_bins.iloc[idx:idx+n_bins, 3] = idx+np.arange(0,n_bins,1)
             label_bins.iloc[idx:idx+n_bins, 4] = cuts[0:n_bins]
             label_bins.iloc[idx:idx+n_bins, 5] = cuts[1:n_bins+1]
             label_bins.iloc[idx:idx+n_bins, 6] = np.arange(0,n_bins,1)

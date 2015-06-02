@@ -62,6 +62,8 @@ class Config(object):
                 if data_source_name not in self.data_source_names:
                     self.data_source_names.append(data_source_name)
 
+    def isolate_task(self, task_name):
+        self.task_names = [task_name]
     @memoize
     def get_subconfig(self, task_name, data_source_name):
         """Fetches the configuration for a given task and data source."""

@@ -70,6 +70,9 @@ class Schedule(object):
         self.path = path
         self.raw = None
         self.sched_df = None
+        self.subjects = []
+        self.valid_subjects = []
+        self.invalid_subjects = []
 
     def load(self):
         """Load in the raw schedule configuration."""
@@ -86,6 +89,53 @@ class Schedule(object):
         self.sched_df = self._resolve(files_df)
         self.sched_df[['Subject_ID', 'Task_Order']] = \
             self.sched_df[['Subject_ID', 'Task_Order']].astype(np.int64)
+        self.subjects = list(np.unique(self.sched_df['Subject_ID']))
+
+    # TODO(janmtl): The function that checks the integrity of a subject's data
+    # should also return which subjects are broken and why
+
+    def validate_subjects(self):
+        """Iterate over subjects and make sure that they all have all the files
+        they need."""
+        valid_subjects = list(np.unique(self.sched_df['Subject_ID']))
+        invalid_subjects = []
+
+        grouped = self.sched_df.groupby('Subject_ID')
+        # TODO(janmtl): I'm pretty sure if I pivot this I can just check the
+        # size of the df
+        for idx, subject_df in grouped:
+            for task_name, task in self.raw.iteritems():
+                for data_source_name, patterns in task.iteritems():
+                    for pattern_name, _ in patterns.iteritems():
+                        if subject_df[
+                            (subject_df['Task_Name']==task_name)
+                            & (subject_df['Data_Source_Name']==data_source_name)
+                            & (subject_df['File']==pattern_name)
+                            ].size == 0:
+                            if idx in valid_subjects:
+                                invalid_subjects.append(idx)
+                                valid_subjects.remove(idx)
+        
+
+        self.valid_subjects = valid_subjects
+        self.invalid_subjects = invalid_subjects        
+
+    def drop_incomplete_subjects(self):
+        """."""
+        self.sched_df = self.sched_df[
+            self.sched_df['Subject_ID'].isin(self.valid_subjects)]
+
+    def remove_subject(self, subject_id):
+        self.sched_df = self.sched_df[self.sched_df['Subject_ID']!=subject_id]
+        if subject_id in self.subjects:
+            self.subjects.remove(subject_id)
+
+    def isolate_subject(self, subject_id):
+        self.sched_df = self.sched_df[self.sched_df['Subject_ID']==subject_id]
+        self.subjects = subject_id
+
+    def isolate_task(self, task_name):
+        self.sched_df = self.sched_df[self.sched_df['Task_Name']==task_name]
 
     def get_file_paths(self, subject_id, task_name, data_source_name):
         """Return all a dictionary of all files for a given subject, task,

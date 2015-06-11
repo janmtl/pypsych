@@ -7,7 +7,7 @@ Includes the BeGaze data source class
 import pandas as pd
 import numpy  as np
 from itertools import product
-from pypsych.data_source import DataSource
+from data_source import DataSource
 from schema import Schema, Or
 
 
@@ -17,40 +17,16 @@ class BeGaze(DataSource):
         # Call the parent class init
         super(BeGaze, self).__init__(config, schedule)
 
+        # Diameter channel statistics
+        self.panels = {'Diameter': {'VAL': np.mean,
+                                    'SEM': lambda x: x.sem(axis=0),
+                                    'COUNT': np.size,
+                                    'NANS': lambda x: np.isnan(x).sum()}}
+
     def process(self):
         """."""
         self.merge_data()
         self.bin_data()
-
-    def bin_data(self):
-        """."""
-
-        label_bins = self._create_label_bins(self.data['labels'])
-        raw = self.data['samples']
-
-        panels = {
-            # Diameter channel statistics
-            ('Diameter', 'VAL'): np.mean,
-            ('Diameter', 'SEM'): lambda x: x.sem(axis=0),
-            ('Diameter', 'COUNT'): np.size,
-            ('Diameter', 'NANS'): lambda x: np.isnan(x).sum(),
-            }
-
-        output = {}
-        for panel, statistic in panels.iteritems():
-            stats = []
-            new_panel = label_bins.copy(deep=True)
-            new_panel.drop(['Start_Time', 'End_Time'], axis=1, inplace=True)
-            for _, label_bin in label_bins.iterrows():
-                selector = (raw.index.values >= label_bin['Start_Time']) \
-                           & (raw.index.values < label_bin['End_Time'])
-                samples = raw[selector][panel[0]]
-                stats.append(statistic(samples))
-
-            new_panel['_'.join(panel)] = stats
-            output[panel] = new_panel.sort('Event_Order')
-        
-        self.output = output
 
     def merge_data(self):
         """

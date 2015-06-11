@@ -10,7 +10,7 @@ Schema (YAML):
     {data_source_name (str): data_source_configuration (dict)}
   }
 """
-from schema import Schema
+from schema import Schema, Or
 import yaml
 import functools
 
@@ -72,7 +72,7 @@ class Config(object):
     @staticmethod
     def validate_schema(raw):
         """Validate the config dictionary against the schema described above."""
-        schema = Schema({str: {str: dict}})
+        schema = Schema({str:{str: dict}})
         return schema.validate(raw)
 
     @staticmethod

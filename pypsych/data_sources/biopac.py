@@ -8,7 +8,7 @@ import pandas as pd
 import numpy  as np
 from itertools import product
 from scipy.io import loadmat
-from pypsych.data_source import DataSource
+from data_source import DataSource
 from schema import Schema, Or
 
 
@@ -17,6 +17,13 @@ class Biopac(DataSource):
         
         # Call the parent class init
         super(Biopac, self).__init__(config, schedule)
+
+        self.panels = {'bpm': {'VAL': np.mean,
+                               'SEM': lambda x: x.sem(axis=0)},
+                       'rr': {'VAL': np.mean,
+                              'VAR': np.var},
+                       'twave': {'VAL': np.mean,
+                                 'SEM': lambda x: x.sem(axis=0)}}
 
     def load(self, file_paths):
         """Override for data source load method to include .mat compatibility."""
@@ -55,39 +62,6 @@ class Biopac(DataSource):
         self.data['labels'] = self._merge_labels_and_config(
             labels=self.data['labels'],
             config=label_config)
-
-    def bin_data(self):
-        """Return a pandas Panel indexed by tuples of (channel, statistic)."""
-        label_bins = self._create_label_bins(self.data['labels'])
-        raw = self.data['samples']
-
-        panels = {
-            # bpm channel statistics
-            ('bpm', 'VAL'): np.mean,
-            ('bpm', 'SEM'): lambda x: x.sem(axis=0),
-            # rr channel statistics
-            ('rr', 'VAL'): np.mean,
-            ('rr', 'VAR'): np.var,
-            # twave channel statistics
-            ('twave', 'VAL'): np.mean,
-            ('twave', 'SEM'): lambda x: x.sem(axis=0)
-            }
-
-        output = {}
-        for panel, statistic in panels.iteritems():
-            stats = []
-            new_panel = label_bins.copy(deep=True)
-            new_panel.drop(['Start_Time', 'End_Time'], axis=1, inplace=True)
-            for _, label_bin in label_bins.iterrows():
-                selector = (raw.index.values >= label_bin['Start_Time']) \
-                           & (raw.index.values < label_bin['End_Time'])
-                samples = raw[selector][panel[0]]
-                stats.append(statistic(samples))
-
-            new_panel['_'.join(panel)] = stats
-            output[panel] = new_panel.sort('Event_Order')
-        
-        self.output = output
 
     @staticmethod
     def _label_config_to_df(config):

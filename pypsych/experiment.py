@@ -68,6 +68,7 @@ class Experiment(object):
 
         # Iterate over subjects, tasks, and data sources
         with progress.Bar(label="Processing ", expected_size=tots) as pbar:
+            pbar.show(prog)
             for idx, _ in grouped:
                 # Fetch the file paths from the schedule for this trial
                 file_paths = self.schedule.get_file_paths(*idx)
@@ -80,25 +81,47 @@ class Experiment(object):
 
                 # Iterate over the outputs and append them to existing output
                 # data frames if possible
-                for p_id, panel in self.data_sources[ds_id].output.iteritems():
-                    # Insert a column for the subject id since the data sources
-                    # are ignorant of this
-                    panel['Subject_ID'] = subject_id
+                ds_out = self.data_sources[ds_id].output
+                panels = self.data_sources[ds_id].panels
 
-                    # If the panel already exists, append to it, otherwise save
-                    # it
+                for channel, statistics in panels.iteritems():
+                    # Insert a column for the subject id since the data 
+                    # sources are ignorant of this
+                    ds_out[channel].loc[:, :, 'Subject_ID'] = subject_id
 
-                    if p_id in self.output[task_name].keys():
-                        self.output[task_name][p_id] = pd.concat(
-                            [self.output[task_name][p_id], panel],
-                            ignore_index=True)
+                    # If the channel already exists, append to it, otherwise
+                    # save it
+                    if channel in self.output[task_name].keys():
+                        self.output[task_name][channel] = pd.concat(
+                            [self.output[task_name][channel], ds_out[channel]],
+                            ignore_index=True,
+                            axis=1)
                     else:
-                        self.output[task_name][p_id] = panel
+                        self.output[task_name][channel] = ds_out[channel]
 
                 prog = prog +1
                 pbar.show(prog)
 
-        self._fill_index_columns()
+        prog = 0
+        tots = len(self.output)
+        mbar_name = "Merging Data Sources"
+        with progress.Bar(label=mbar_name, expected_size=tots) as mbar:
+            mbar.show(prog)
+            for task_name, task_output in self.output.iteritems():
+                self.output[task_name] = self._aggregate_channels(task_output)
+                prog = prog + 1
+                mbar.show(prog)
+
+    def _aggregate_channels(self, task_output):
+        """."""
+        # TODO(janmtl): improve this docstring
+        all_cols = set(['Event_ID', 'Event_Type', 'Event_Group', 'Event_Order',
+                        'Bin_Index', 'stat', 'Subject_ID', 'Event'])
+        first = 
+
+        for channel_name, channel in task_output.iteritems()
+
+        pass
 
     def save_outputs(self, output_path):
         """Save all of the items in the self.output dict object to seperate
@@ -109,50 +132,36 @@ class Experiment(object):
                 item_path = output_path+'/'+task_name+'_'+'_'.join(idx)+'.txt'
                 item.to_csv(item_path, sep="\t")
 
-    def _fill_index_columns(self):
-        """Fill out Event_ID, Event_Type, Event_Group, Event_Order,
-        Bin_Index, and Subject_ID for all output data frames."""
-
-        idx_cols = [
-            'Event_ID', 'Event_Type', 'Event_Group', 'Event_Order',
-            'Bin_Index', 'Subject_ID']
-
-        for task_name in self.config.task_names:
-            all_idx = pd.DataFrame(columns=idx_cols)
-
-            for idx, item in self.output[task_name].iteritems():
-                all_idx = pd.merge(
-                    item.dropna(how='all', axis=1).drop('_'.join(idx), axis=1),
-                    all_idx,
-                    how='outer'
-                    )
-
-            for idx in self.output[task_name].keys():
-                self.output[task_name][idx][idx_cols] = all_idx[idx_cols]
-
     def save_pivoted_outputs(self, output_path):
         """Pivot."""
         # TODO(janmtl): improve this docstring
 
         for task_name in self.config.task_names:
-            for idx, item in self.output[task_name].iteritems():
-                item['Event'] = item['Event_Type'] \
-                                + item['Bin_Index'].astype(str)
+            for channel, stats in self.output[task_name].iteritems():
+                stats.loc[:, :, 'Event'] = stats.loc[:, :, 'Event_Type'] \
+                                          + stats.loc[:, :, 'Bin_Index'].\
+                                          astype(str)
+                for stat_name, stat in stats.iteritems():
+                    # Only allow for indices which are filled and discard the
+                    # rest
+                    all_cols = ['Subject_ID', 'Event_Group','Event_Order',
+                                'Event_ID']
+                    full_cols = stat[['Subject_ID', 'Event_Group','Event_Order',
+                                      'Event_ID']].\
+                                    dropna(how='all', axis=1).\
+                                    columns
+                    new_cols = all_cols-full_cols
+                    # piv_cols = [val for val in all_cols if val in full_cols]
 
-                # Only allow for indices which are filled and discard the rest
-                all_cols = ['Subject_ID', 'Event_Group', 'Event_Order',
-                            'Event_ID']
-                full_cols = item.dropna(how='all', axis=1).columns
-                piv_cols = [val for val in all_cols if val in full_cols]
-
-                item_piv = pd.pivot_table(
-                    item,
-                    values='_'.join(idx),
-                    index=piv_cols,
-                    columns='Event',
-                    aggfunc=lambda x: x)
-                item_path = output_path+'/'+task_name+'_'+'_'.join(idx)+'.txt'
-                item_piv.to_csv(item_path, sep="\t") 
+                    stat_piv = pd.pivot_table(
+                        stat,
+                        values='stat',
+                        index=piv_cols,
+                        columns='Event',
+                        aggfunc=lambda x: x)
+                    stat_path = output_path+'/'+task_name+'_'+\
+                                channel+'_'+stat_name+'.txt'
+                    stat_piv.to_csv(stat_path, sep="\t") 
 
     #Shortcuts
     def remove_subject(self, subject_ids):

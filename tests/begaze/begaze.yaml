@@ -5,6 +5,8 @@ Mock1:
             duration: 1000
             bins: 1
             pattern: '(?P<Event_ID>[0-9\.]+)_Luke_(?P<Event_Group>Skywalker|Skyhopper)'
+            left_trim: 250
+            right_trim: 250
         Leia:
             duration: 2000
             bins: 2

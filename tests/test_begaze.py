@@ -107,7 +107,7 @@ class BeGazeMergeLabelsConfig(unittest.TestCase):
                                    delimiter="\t",
                                    index_col=0,
                                    dtype={'Duration': np.float64,
-                                          'Event_Group': np.object,
+                                          'Condition': np.object,
                                           'Event_ID': np.object,
                                           'Event_Order': np.int64,
                                           'Event_Type': np.object,
@@ -144,6 +144,7 @@ class BeGazeBinData(unittest.TestCase):
 
     def test_bin_data(self):
         """Test if statistics are being calculated and binned correctly."""
+        # TODO: check the output of this test
         self.begaze.bin_data()
 
 if __name__ == '__main__':

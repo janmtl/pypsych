@@ -8,8 +8,9 @@ import pandas as pd
 import numpy  as np
 from itertools import product
 from scipy.io import loadmat
+from scipy.signal import lfilter
 from data_source import DataSource
-from schema import Schema, Or
+from schema import Schema, Or, Optional
 
 
 class Biopac(DataSource):
@@ -55,13 +56,12 @@ class Biopac(DataSource):
         self.data['samples'] = self._clean_samples(self.data['samples'])
         self.data['labels'] = self._clean_labels(self.data['labels'])
 
-
-        label_config = self._label_config_to_df(self.config)
+        self.label_config = self._label_config_to_df(self.config)
         
         # Combine the labels data with the labels configuration
         self.data['labels'] = self._merge_labels_and_config(
             labels=self.data['labels'],
-            config=label_config)
+            config=self.label_config)
 
     @staticmethod
     def _label_config_to_df(config):
@@ -71,16 +71,24 @@ class Biopac(DataSource):
             pattern = label_config['pattern']
             if isinstance(pattern, dict):
                 for event_group, flag in label_config['pattern'].iteritems():
-                    labels_list.append({'Event_Type': event_type,
-                                        'Event_Group': event_group,
+                    labels_list.append({'Label': event_type,
+                                        'Condition': event_group,
                                         'Duration': label_config['duration'],
                                         'N_Bins': label_config['bins'],
+                                        'Left_Trim': label_config.\
+                                            get('left_trim', 0),
+                                        'Right_Trim': label_config.\
+                                            get('right_trim', 0),
                                         'flag': flag})
             elif isinstance(pattern, int):
-                labels_list.append({'Event_Type': event_type,
-                                    'Event_Group': np.nan,
+                labels_list.append({'Label': event_type,
+                                    'Condition': np.nan,
                                     'Duration': label_config['duration'],
                                     'N_Bins': label_config['bins'],
+                                    'Left_Trim': label_config.\
+                                        get('left_trim', 0),
+                                    'Right_Trim': label_config.\
+                                        get('right_trim', 0),
                                     'flag': pattern})
             else:
                 raise Exception('Bad Biopac config flag {}'.format(pattern))
@@ -104,7 +112,7 @@ class Biopac(DataSource):
                                'Start_Time': start_times})
 
         labels = labels[(labels['flag'] != 255)]
-        # labels['Event_Order'] = np.arange(len(labels['flag']))
+
         return labels
 
     @staticmethod
@@ -112,6 +120,9 @@ class Biopac(DataSource):
         """
         .
         """
+        samples = lfilter(np.ones(1000)/1000, 1, samples, axis=0)
+        samples = lfilter(np.ones(1000)/1000, 1, samples, axis=0)
+        samples = pd.DataFrame(samples, columns = ['bpm', 'rr', 'twave'])
         samples.index = samples.index*100
         return samples
 
@@ -125,35 +136,49 @@ class Biopac(DataSource):
         labels.sort('Start_Time', inplace=True)
         return labels
 
-    @staticmethod
-    def _create_label_bins(labels):
+    def create_label_bins(self, labels):
         """Replace the N_Bins column with Bin_Index and the Duration column
         with End_Time. This procedure grows the number of rows in the labels
         data frame."""
-
         total_bins = labels['N_Bins'].sum()
-        label_bins = pd.DataFrame(columns=['Event_ID','Event_Type',
-                                           'Event_Group', 'Event_Order',
+        label_bins = pd.DataFrame(columns=['Ordered_ID', 'ID', 'Label',
+                                           'Condition', 'Bin_Order',
                                            'Start_Time', 'End_Time',
                                            'Bin_Index'],
                                   index=np.arange(0,total_bins))
         idx = 0
         for _, label in labels.iterrows():
             n_bins = label['N_Bins']
-            cuts = np.linspace(start=label['Start_Time'],
-                               stop=(label['Start_Time'] + label['Duration']),
+            cuts = np.linspace(start=label['Start_Time'] + label['Left_Trim'],
+                               stop=(label['Start_Time']
+                                     + label['Duration']
+                                     - label['Right_Trim']),
                                num=n_bins+1)
-            label_info = np.tile(label.as_matrix(columns = ['Event_Type',
-                                                            'Event_Group']),
+            label_info = np.tile(label.as_matrix(columns = ['Label',
+                                                            'Condition']),
                                  (n_bins, 1))
 
-            label_bins.iloc[idx:idx+n_bins, 1] = np.nan
-            label_bins.iloc[idx:idx+n_bins, 1:3] = label_info
-            label_bins.iloc[idx:idx+n_bins, 3] = idx+np.arange(0,n_bins,1)
-            label_bins.iloc[idx:idx+n_bins, 4] = cuts[0:n_bins]
-            label_bins.iloc[idx:idx+n_bins, 5] = cuts[1:n_bins+1]
-            label_bins.iloc[idx:idx+n_bins, 6] = np.arange(0,n_bins,1)
+            # Ordered_ID and ID
+            label_bins.iloc[idx:idx+n_bins, 0:2] = np.nan
+            # Label, Condition
+            label_bins.iloc[idx:idx+n_bins, 2:4] = label_info
+            # Bin_Order
+            label_bins.iloc[idx:idx+n_bins, 4] = idx+np.arange(0,n_bins,1)
+            # Start_Time
+            label_bins.iloc[idx:idx+n_bins, 5] = cuts[0:n_bins]
+            # End_Time
+            label_bins.iloc[idx:idx+n_bins, 6] = cuts[1:n_bins+1]
+            # Bin_Index
+            label_bins.iloc[idx:idx+n_bins, 7] = np.arange(0,n_bins,1)
+            
             idx = idx + n_bins
+
+        # Add the Ordered_ID by iterating over Labels and Bin indices
+        for lc, group in label_bins.groupby(['Label', 'Bin_Index']):
+            selector = (label_bins['Label'] == lc[0]) & \
+                       (label_bins['Bin_Index'] == lc[1])
+            label_bins.loc[selector, 'Ordered_ID'] = \
+                np.arange(0, np.sum(selector), 1)
 
         return label_bins
 
@@ -175,7 +200,9 @@ class Biopac(DataSource):
         # TODO(janmtl): improve this docstring
         schema = Schema({str: {'duration': Or(float, int),
                                'bins': int,
-                               'pattern': Or(int, {str: int})}})
+                               'pattern': Or(int, {str: int}),
+                               Optional('left_trim'): Or(float, int),
+                               Optional('right_trim'): Or(float, int)}})
 
         return schema.validate(raw)
 

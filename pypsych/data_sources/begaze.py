@@ -8,7 +8,7 @@ import pandas as pd
 import numpy  as np
 from itertools import product
 from data_source import DataSource
-from schema import Schema, Or
+from schema import Schema, Or, Optional
 
 
 class BeGaze(DataSource):
@@ -60,12 +60,14 @@ class BeGaze(DataSource):
         labels.columns = ['Start_Time', 'Event']
         # Create new columns to hold the additional label info
         temp_labels = pd.DataFrame(index=labels.index,
-                                   columns=['Event_Type',
-                                            'Event_Group',
-                                            'Event_ID',
-                                            'Event_Order',
+                                   columns=['Label',
+                                            'Condition',
+                                            'ID',
+                                            'Bin_Order',
                                             'Duration',
-                                            'N_Bins'])
+                                            'N_Bins',
+                                            'Left_Trim',
+                                            'Right_Trim'])
         labels = pd.concat([labels, temp_labels], axis=1)      
         return labels
 
@@ -117,7 +119,7 @@ class BeGaze(DataSource):
 
         Output:
           labels (pandas Data Frame): the resulting merged data frame with the
-            following columns ['Start_Time', Event_Type', 'Duration', 'N_Bins']
+            following columns ['Start_Time', Label', 'Duration', 'N_Bins']
         """
         # Iterate over label configurations
         for event_type, label_config in config.iteritems():
@@ -137,19 +139,23 @@ class BeGaze(DataSource):
 
             # Write in the various properites of this label into the temp_labels
             # data frame at the positions indicated by temp_pos.
-            temp_labels.loc[temp_pos, 'Event_Type'] = event_type
+            temp_labels.loc[temp_pos, 'Label'] = event_type
             temp_labels.loc[temp_pos, 'Duration'] = label_config['duration']
             temp_labels.loc[temp_pos, 'N_Bins'] = label_config['bins']
+            temp_labels.loc[temp_pos, 'Left_Trim'] = \
+                label_config.get('left_trim', 0)
+            temp_labels.loc[temp_pos, 'Right_Trim'] = \
+                label_config.get('right_trim', 0)
             labels.update(temp_labels)
 
-        # Fill out the Event_Order column
-        labels['Event_Order'] = np.arange(0, len(labels['Event_Order']))
+        # Fill out the Bin_Order column
+        labels['Bin_Order'] = np.arange(0, len(labels['Bin_Order']))
 
         # Any labels that went unrecognized by any regex pattern should be
         # dropped.
         labels.dropna(axis=0,
                       how='any',
-                      subset = ['Event_Type', 'Event_Group', 'Event_ID',
+                      subset = ['Label', 'Condition', 'ID',
                                 'Duration', 'N_Bins'],
                       inplace=True)
 
@@ -179,46 +185,62 @@ class BeGaze(DataSource):
         """
 
         # Group the labels by their duplicates
-        duplicate_labels = labels[labels.duplicated(subset=['Event_ID',
-                                                            'Event_Type'])]
-        grouped = duplicate_labels.groupby(['Event_ID', 'Event_Type'])
+        duplicate_labels = labels[labels.duplicated(subset=['ID',
+                                                            'Label'])]
+        grouped = duplicate_labels.groupby(['ID', 'Label'])
 
-        # In each group of duplicates, add a suffix to the Event_ID
+        # In each group of duplicates, add a suffix to the ID
         for _, label in grouped:
-            labels.loc[label.index, 'Event_ID'] = \
-                label['Event_ID'] + np.arange(1,label.shape[0]+1,1).astype(str)
+            labels.loc[label.index, 'ID'] = \
+                label['ID'] + np.arange(1,label.shape[0]+1,1).astype(str)
 
         return labels
 
-    @staticmethod
-    def _create_label_bins(labels):
+    def create_label_bins(self, labels):
         """Replace the N_Bins column with Bin_Index and the Duration column
         with End_Time. This procedure grows the number of rows in the labels
         data frame."""
 
         total_bins = labels['N_Bins'].sum()
-        label_bins = pd.DataFrame(columns=['Event_ID','Event_Type',
-                                           'Event_Group', 'Event_Order',
+        label_bins = pd.DataFrame(columns=['Ordered_ID', 'ID', 'Label',
+                                           'Condition', 'Bin_Order',
                                            'Start_Time', 'End_Time',
                                            'Bin_Index'],
                                   index=np.arange(0,total_bins))
         idx = 0
         for event_order, label in labels.iterrows():
             n_bins = label['N_Bins']
-            cuts = np.linspace(start=label['Start_Time'],
-                               stop=(label['Start_Time'] + label['Duration']),
+            cuts = np.linspace(start=label['Start_Time'] + label['Left_Trim'],
+                               stop=(label['Start_Time']
+                                     + label['Duration']
+                                     - label['Right_Trim']),
                                num=n_bins+1)
-            label_info = np.tile(label.as_matrix(columns = ['Event_ID',
-                                                            'Event_Type',
-                                                            'Event_Group']),
+            label_info = np.tile(label.as_matrix(columns = ['ID',
+                                                            'Label',
+                                                            'Condition']),
                                  (n_bins, 1))
 
-            label_bins.iloc[idx:idx+n_bins, 0:3] = label_info
-            label_bins.iloc[idx:idx+n_bins, 3] = idx+np.arange(0,n_bins,1)
-            label_bins.iloc[idx:idx+n_bins, 4] = cuts[0:n_bins]
-            label_bins.iloc[idx:idx+n_bins, 5] = cuts[1:n_bins+1]
-            label_bins.iloc[idx:idx+n_bins, 6] = np.arange(0,n_bins,1)
+            # Ordered_ID
+            label_bins.iloc[idx:idx+n_bins, 0] = np.nan
+            # ID, Label, Condition
+            label_bins.iloc[idx:idx+n_bins, 1:4] = label_info
+            # Bin_Order
+            label_bins.iloc[idx:idx+n_bins, 4] = idx+np.arange(0,n_bins,1)
+            # Start_Time
+            label_bins.iloc[idx:idx+n_bins, 5] = cuts[0:n_bins]
+            # End_Time
+            label_bins.iloc[idx:idx+n_bins, 6] = cuts[1:n_bins+1]
+            # Bin_Index
+            label_bins.iloc[idx:idx+n_bins, 7] = np.arange(0,n_bins,1)
+
             idx = idx + n_bins
+
+        # Add the Ordered_ID by iterating over Labels and Bin indices
+        for lc, group in label_bins.groupby(['Label', 'Bin_Index']):
+            selector = (label_bins['Label'] == lc[0]) & \
+                       (label_bins['Bin_Index'] == lc[1])
+            label_bins.loc[selector, 'Ordered_ID'] = \
+                np.arange(0, np.sum(selector), 1)
 
         return label_bins
 
@@ -239,10 +261,12 @@ class BeGaze(DataSource):
         """
         schema = Schema({str: {'duration': Or(float, int),
                                'bins': int,
-                               'pattern': str}})
+                               'pattern': str,
+                               Optional('left_trim'): Or(float, int),
+                               Optional('right_trim'): Or(float, int)}})
 
         # TODO(janmtl): This should also validate that pattern regex returns an
-        # Event_ID and an Event_Group
+        # ID and an Condition
         return schema.validate(raw)
 
     @staticmethod

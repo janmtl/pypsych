@@ -87,9 +87,9 @@ class Schedule(object):
         """Search the data path for the files to add to the schedule."""
         files_df = self.search(self.raw, data_path)
         self.sched_df = self._resolve(files_df)
-        self.sched_df[['Subject_ID', 'Task_Order']] = \
-            self.sched_df[['Subject_ID', 'Task_Order']].astype(np.int64)
-        self.subjects = list(np.unique(self.sched_df['Subject_ID']))
+        self.sched_df[['Subject', 'Task_Order']] = \
+            self.sched_df[['Subject', 'Task_Order']].astype(np.int64)
+        self.subjects = list(np.unique(self.sched_df['Subject']))
 
     # TODO(janmtl): The function that checks the integrity of a subject's data
     # should also return which subjects are broken and why
@@ -97,10 +97,10 @@ class Schedule(object):
     def validate_subjects(self):
         """Iterate over subjects and make sure that they all have all the files
         they need."""
-        valid_subjects = list(np.unique(self.sched_df['Subject_ID']))
+        valid_subjects = list(np.unique(self.sched_df['Subject']))
         invalid_subjects = []
 
-        grouped = self.sched_df.groupby('Subject_ID')
+        grouped = self.sched_df.groupby('Subject')
         # TODO(janmtl): I'm pretty sure if I pivot this I can just check the
         # size of the df
         for idx, subject_df in grouped:
@@ -123,15 +123,15 @@ class Schedule(object):
     def drop_incomplete_subjects(self):
         """."""
         self.sched_df = self.sched_df[
-            self.sched_df['Subject_ID'].isin(self.valid_subjects)]
+            self.sched_df['Subject'].isin(self.valid_subjects)]
 
     def remove_subject(self, subject_id):
-        self.sched_df = self.sched_df[self.sched_df['Subject_ID']!=subject_id]
+        self.sched_df = self.sched_df[self.sched_df['Subject']!=subject_id]
         if subject_id in self.subjects:
             self.subjects.remove(subject_id)
 
     def isolate_subject(self, subject_id):
-        self.sched_df = self.sched_df[self.sched_df['Subject_ID']==subject_id]
+        self.sched_df = self.sched_df[self.sched_df['Subject']==subject_id]
         self.subjects = subject_id
 
     def isolate_task(self, task_name):
@@ -143,7 +143,7 @@ class Schedule(object):
         if self.sched_df.empty:
             raise Exception('Schedule is empty, try Schedule.compile(path).')
         sub_df = self.sched_df[
-            (self.sched_df['Subject_ID'] == subject_id)
+            (self.sched_df['Subject'] == subject_id)
             & (self.sched_df['Task_Name'] == task_name)
             & (self.sched_df['Data_Source_Name'] == data_source_name)
             ]
@@ -176,8 +176,8 @@ class Schedule(object):
                                 file_dict['Path'] = os.path.join(root, filepath)
                                 files_dict.append(file_dict)
         files_df = pd.DataFrame(files_dict)
-        files_df[['Subject_ID', 'Task_Order']] = \
-            files_df[['Subject_ID', 'Task_Order']].astype(np.int64)
+        files_df[['Subject', 'Task_Order']] = \
+            files_df[['Subject', 'Task_Order']].astype(np.int64)
         return files_df
 
     @staticmethod
@@ -190,18 +190,18 @@ class Schedule(object):
           files_df (pandas.DataFrame): a DataFrame resulting from
           Schedule.search().
         """
-        counter = files_df.groupby(['Subject_ID',
+        counter = files_df.groupby(['Subject',
                                     'Data_Source_Name',
                                     'File',
                                     'Task_Name'])['Task_Order'].count()
         maps = counter[counter == 1]
         maps = maps.reset_index()
         maps.drop('Task_Order', axis=1, inplace=True)
-        orders = pd.merge(maps, files_df)[['Subject_ID',
+        orders = pd.merge(maps, files_df)[['Subject',
                                            'Task_Name',
                                            'Task_Order']]
         orders.drop_duplicates(inplace=True)
-        sched_df = pd.merge(orders, files_df)[['Subject_ID',
+        sched_df = pd.merge(orders, files_df)[['Subject',
                                                'Task_Name',
                                                'Task_Order',
                                                'File',
@@ -237,13 +237,13 @@ class Schedule(object):
     @staticmethod
     def validate_patterns(raw):
         """Validate that all file pattern regex expressions yield Task_Order
-        and Subject_ID fields."""
+        and Subject fields."""
         for _, task  in raw.iteritems():
             for _, data_source in task.iteritems():
                 for _, pattern in data_source.iteritems():
                     compiled_pattern = re.compile(pattern)
                     for group_name in compiled_pattern.groupindex.keys():
-                        if not group_name in ['Task_Order', 'Subject_ID']:
+                        if not group_name in ['Task_Order', 'Subject']:
                             raise Exception(
                                 'Schedule could not validate pattern ',
                                 pattern

@@ -1,5 +1,6 @@
 wheel==0.23.0
-yaml
-pkg_resources
-schema
-logging
+pyyaml>=3.11
+schema>=0.3.1
+numpy>=1.9.2
+pandas>=0.16.1
+clint>=0.4.1

@@ -26,7 +26,7 @@ class Experiment(object):
         self.schedule = Schedule(self.schedule_path)
         self.output = {}
 
-        # Data sources will be preserved in memery across trials. This is to
+        # Data sources will be preserved in memory across trials. This is to
         # ensure that the future Masker data source does not read hundreds of
         # bitmaps repeatedly.
         self.data_sources = {}
@@ -59,7 +59,7 @@ class Experiment(object):
         Iterate over the (subject, task) pairs and process each data source.
         """
 
-        grouped = self.schedule.sched_df.groupby(['Subject_ID',
+        grouped = self.schedule.sched_df.groupby(['Subject',
                                                   'Task_Name',
                                                   'Data_Source_Name'])
         tots = len(grouped)
@@ -87,7 +87,7 @@ class Experiment(object):
                 for channel, statistics in panels.iteritems():
                     # Insert a column for the subject id since the data 
                     # sources are ignorant of this
-                    ds_out[channel].loc[:, :, 'Subject_ID'] = subject_id
+                    ds_out[channel].loc[:, :, 'Subject'] = subject_id
 
                     # If the channel already exists, append to it, otherwise
                     # save it
@@ -102,6 +102,9 @@ class Experiment(object):
                 prog = prog +1
                 pbar.show(prog)
 
+    def merge_channels(self):
+        """."""
+        # TODO(janmtl): Must first check which tasks are mergeable
         prog = 0
         tots = len(self.output)
         mbar_name = "Merging Data Sources"
@@ -115,17 +118,26 @@ class Experiment(object):
     def _aggregate_channels(self, task_output):
         """."""
         # TODO(janmtl): improve this docstring
-        all_cols = set(['Event_ID', 'Event_Type', 'Event_Group', 'Event_Order',
-                        'Bin_Index', 'stat', 'Subject_ID', 'Event'])
-        first = 
+        if bool(task_output):
+            channel = task_output.itervalues().next()
+            _, stat = channel.iteritems().next()
+            filled_out = stat.drop('stat', axis=1)
 
-        for channel_name, channel in task_output.iteritems()
+            for _, channel in task_output.iteritems():
+                for _, stat in channel.iteritems():
+                    filled_out.update(stat.drop('stat', axis=1))
 
-        pass
+            for channel_name in task_output.keys():
+                for stat_name in task_output[channel_name].items:
+                    task_output[channel_name][stat_name].update(filled_out)
+
+
+        return task_output
 
     def save_outputs(self, output_path):
         """Save all of the items in the self.output dict object to seperate
         files named using the the index [task_name][(channel, statistic)]."""
+        # TODO(janmtl): this has to be updated to the new output dict format.
 
         for task_name in self.config.task_names:
             for idx, item in self.output[task_name].iteritems():
@@ -138,25 +150,21 @@ class Experiment(object):
 
         for task_name in self.config.task_names:
             for channel, stats in self.output[task_name].iteritems():
-                stats.loc[:, :, 'Event'] = stats.loc[:, :, 'Event_Type'] \
+                stats.loc[:, :, 'Event'] = stats.loc[:, :, 'Label'] \
                                           + stats.loc[:, :, 'Bin_Index'].\
                                           astype(str)
                 for stat_name, stat in stats.iteritems():
                     # Only allow for indices which are filled and discard the
                     # rest
-                    all_cols = ['Subject_ID', 'Event_Group','Event_Order',
-                                'Event_ID']
-                    full_cols = stat[['Subject_ID', 'Event_Group','Event_Order',
-                                      'Event_ID']].\
+                    full_cols = stat[['Subject', 'Condition',
+                                      'ID']].\
                                     dropna(how='all', axis=1).\
                                     columns
-                    new_cols = all_cols-full_cols
-                    # piv_cols = [val for val in all_cols if val in full_cols]
 
                     stat_piv = pd.pivot_table(
                         stat,
                         values='stat',
-                        index=piv_cols,
+                        index=list(full_cols),
                         columns='Event',
                         aggfunc=lambda x: x)
                     stat_path = output_path+'/'+task_name+'_'+\

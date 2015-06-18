@@ -34,7 +34,7 @@ class DataSource(object):
 
     def bin_data(self):
         """Return a pandas Panel indexed by tuples of (channel, statistic)."""
-        label_bins = self._create_label_bins(self.data['labels'])
+        label_bins = self.create_label_bins(self.data['labels'])
         major_axis = label_bins.index.values
         minor_axis = label_bins.drop(['Start_Time', 'End_Time'], axis=1).columns
         minor_axis = minor_axis.append(pd.Index(['stat']))
@@ -58,7 +58,7 @@ class DataSource(object):
                     stats.append(stat_fun(samples))
 
                 new_panel['stat'] = stats
-                output[channel][stat_name] = new_panel.sort('Event_Order')
+                output[channel][stat_name] = new_panel.sort('Bin_Order')
 
         self.output = output
 

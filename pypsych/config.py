@@ -63,7 +63,10 @@ class Config(object):
                     self.data_source_names.append(data_source_name)
 
     def isolate_task(self, task_name):
+        """."""
+        # TODO(janmtl): fix this docstring.
         self.task_names = [task_name]
+
     @memoize
     def get_subconfig(self, task_name, data_source_name):
         """Fetches the configuration for a given task and data source."""
@@ -86,6 +89,8 @@ class Config(object):
             valid_data_source_names (list(str)): list of valid data sources
               names implemented in pypsych.
         """
+        # TODO(janmtl): this function is never actually called.
+
         for _, task in raw.iteritems():
             for data_source_name in task.keys():
                 if not data_source_name in valid_data_source_names:

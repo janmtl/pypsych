@@ -141,7 +141,7 @@ class Biopac(DataSource):
         with End_Time. This procedure grows the number of rows in the labels
         data frame."""
         total_bins = labels['N_Bins'].sum()
-        label_bins = pd.DataFrame(columns=['Ordered_ID', 'ID', 'Label',
+        label_bins = pd.DataFrame(columns=['Order', 'ID', 'Label',
                                            'Condition', 'Bin_Order',
                                            'Start_Time', 'End_Time',
                                            'Bin_Index'],
@@ -158,7 +158,7 @@ class Biopac(DataSource):
                                                             'Condition']),
                                  (n_bins, 1))
 
-            # Ordered_ID and ID
+            # Order and ID
             label_bins.iloc[idx:idx+n_bins, 0:2] = np.nan
             # Label, Condition
             label_bins.iloc[idx:idx+n_bins, 2:4] = label_info
@@ -173,11 +173,11 @@ class Biopac(DataSource):
             
             idx = idx + n_bins
 
-        # Add the Ordered_ID by iterating over Labels and Bin indices
+        # Add the Order by iterating over Labels and Bin indices
         for lc, group in label_bins.groupby(['Label', 'Bin_Index']):
             selector = (label_bins['Label'] == lc[0]) & \
                        (label_bins['Bin_Index'] == lc[1])
-            label_bins.loc[selector, 'Ordered_ID'] = \
+            label_bins.loc[selector, 'Order'] = \
                 np.arange(0, np.sum(selector), 1)
 
         return label_bins

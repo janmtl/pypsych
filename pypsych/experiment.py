@@ -102,54 +102,16 @@ class Experiment(object):
                 prog = prog +1
                 pbar.show(prog)
 
-    def merge_channels(self):
-        """."""
-        # TODO(janmtl): Must first check which tasks are mergeable
-        prog = 0
-        tots = len(self.output)
-        mbar_name = "Merging Data Sources"
-        with progress.Bar(label=mbar_name, expected_size=tots) as mbar:
-            mbar.show(prog)
-            for task_name, task_output in self.output.iteritems():
-                self.output[task_name] = self._aggregate_channels(task_output)
-                prog = prog + 1
-                mbar.show(prog)
-
-    def _aggregate_channels(self, task_output):
-        """."""
-        # TODO(janmtl): improve this docstring
-        if bool(task_output):
-            channel = task_output.itervalues().next()
-            _, stat = channel.iteritems().next()
-            filled_out = stat.drop('stat', axis=1)
-
-            for _, channel in task_output.iteritems():
-                for _, stat in channel.iteritems():
-                    filled_out.update(stat.drop('stat', axis=1))
-
-            for channel_name in task_output.keys():
-                for stat_name in task_output[channel_name].items:
-                    task_output[channel_name][stat_name].update(filled_out)
-
-
-        return task_output
-
-    def save_outputs(self, output_path):
-        """Save all of the items in the self.output dict object to seperate
-        files named using the the index [task_name][(channel, statistic)]."""
-        # TODO(janmtl): this has to be updated to the new output dict format.
-
-        for task_name in self.config.task_names:
-            for idx, item in self.output[task_name].iteritems():
-                item_path = output_path+'/'+task_name+'_'+'_'.join(idx)+'.txt'
-                item.to_csv(item_path, sep="\t")
-
-    def save_pivoted_outputs(self, output_path):
+    def pivot_outputs(self):
         """Pivot."""
         # TODO(janmtl): improve this docstring
 
+        pivot_out = {}
+
         for task_name in self.config.task_names:
+            pivot_out[task_name] = {}
             for channel, stats in self.output[task_name].iteritems():
+                pivot_out[task_name][channel] = {}
                 stats.loc[:, :, 'Event'] = stats.loc[:, :, 'Label'] \
                                           + stats.loc[:, :, 'Bin_Index'].\
                                           astype(str)
@@ -157,9 +119,12 @@ class Experiment(object):
                     # Only allow for indices which are filled and discard the
                     # rest
                     full_cols = stat[['Subject', 'Condition',
-                                      'ID']].\
+                                      'ID', 'Order']].\
                                     dropna(how='all', axis=1).\
                                     columns
+
+                    if ('ID' in full_cols) & ('Order' in full_cols):
+                        full_cols.drop('Order')
 
                     stat_piv = pd.pivot_table(
                         stat,
@@ -167,9 +132,25 @@ class Experiment(object):
                         index=list(full_cols),
                         columns='Event',
                         aggfunc=lambda x: x)
-                    stat_path = output_path+'/'+task_name+'_'+\
-                                channel+'_'+stat_name+'.txt'
-                    stat_piv.to_csv(stat_path, sep="\t") 
+
+                    pivot_out[task_name][channel][stat_name] = stat_piv 
+
+        return pivot_out
+
+    
+    # Useful function for recursing down a dictionary of DataFrames
+    def save_output(self, output, output_path):
+        self._recurse_dict_and_save_df(output, output_path)
+
+    def _recurse_dict_and_save_df(self, node, path):
+        if isinstance(node, dict):
+            for key, next_node in node.iteritems():
+                next_path = path + key + '_'
+                self._recurse_dict_and_save_df(next_node, next_path)
+        elif isinstance(node, pd.DataFrame):
+            node.to_csv(path+'.txt', sep="\t")
+        else:
+            pass
 
     #Shortcuts
     def remove_subject(self, subject_ids):

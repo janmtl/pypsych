@@ -18,10 +18,10 @@ class BeGaze(DataSource):
         super(BeGaze, self).__init__(config, schedule)
 
         # Diameter channel statistics
-        self.panels = {'Diameter': {'VAL': np.mean,
-                                    'SEM': lambda x: x.sem(axis=0),
-                                    'COUNT': np.size,
-                                    'NANS': lambda x: np.isnan(x).sum()}}
+        self.panels = {'LDiameter': {'VAL': np.mean,
+                                     'SEM': lambda x: x.sem(axis=0),
+                                     'COUNT': np.size,
+                                     'NANS': lambda x: np.isnan(x).sum()}}
 
     def process(self):
         """."""
@@ -86,7 +86,7 @@ class BeGaze(DataSource):
         samples = samples.loc[:, ['Time', \
                                    'L Pupil Diameter [mm]', \
                                    'L Event Info']]
-        samples.columns = ['Time', 'Diameter', 'info']
+        samples.columns = ['Time', 'LDiameter', 'info']
 
         # Adjust the sample time to the epoch at the top of the file and convert
         # to milliseconds.
@@ -158,7 +158,6 @@ class BeGaze(DataSource):
                       subset = ['Label', 'Condition', 'ID',
                                 'Duration', 'N_Bins'],
                       inplace=True)
-
         # Drop the now superfluous 'Event' column
         labels.drop('Event', axis=1, inplace=True)
 
@@ -202,7 +201,7 @@ class BeGaze(DataSource):
         data frame."""
 
         total_bins = labels['N_Bins'].sum()
-        label_bins = pd.DataFrame(columns=['Ordered_ID', 'ID', 'Label',
+        label_bins = pd.DataFrame(columns=['Order', 'ID', 'Label',
                                            'Condition', 'Bin_Order',
                                            'Start_Time', 'End_Time',
                                            'Bin_Index'],
@@ -220,7 +219,7 @@ class BeGaze(DataSource):
                                                             'Condition']),
                                  (n_bins, 1))
 
-            # Ordered_ID
+            # Order
             label_bins.iloc[idx:idx+n_bins, 0] = np.nan
             # ID, Label, Condition
             label_bins.iloc[idx:idx+n_bins, 1:4] = label_info
@@ -235,11 +234,11 @@ class BeGaze(DataSource):
 
             idx = idx + n_bins
 
-        # Add the Ordered_ID by iterating over Labels and Bin indices
+        # Add the Order by iterating over Labels and Bin indices
         for lc, group in label_bins.groupby(['Label', 'Bin_Index']):
             selector = (label_bins['Label'] == lc[0]) & \
                        (label_bins['Bin_Index'] == lc[1])
-            label_bins.loc[selector, 'Ordered_ID'] = \
+            label_bins.loc[selector, 'Order'] = \
                 np.arange(0, np.sum(selector), 1)
 
         return label_bins

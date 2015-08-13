@@ -2,6 +2,8 @@
 Contributing
 ============
 
+Note: make sure you don't create namespace conflicts when returning channels from data sources.
+
 Contributions are welcome, and they are greatly appreciated! Every
 little bit helps, and credit will always be given.
 

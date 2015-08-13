@@ -85,7 +85,7 @@ class Experiment(object):
                 panels = self.data_sources[ds_id].panels
 
                 for channel, statistics in panels.iteritems():
-                    # Insert a column for the subject id since the data 
+                    # Insert a column for the subject id since the data
                     # sources are ignorant of this
                     ds_out[channel].loc[:, :, 'Subject'] = subject_id
 
@@ -133,11 +133,11 @@ class Experiment(object):
                         columns='Event',
                         aggfunc=lambda x: x)
 
-                    pivot_out[task_name][channel][stat_name] = stat_piv 
+                    pivot_out[task_name][channel][stat_name] = stat_piv
 
         return pivot_out
 
-    
+
     # Useful function for recursing down a dictionary of DataFrames
     def save_output(self, output, output_path):
         self._recurse_dict_and_save_df(output, output_path)

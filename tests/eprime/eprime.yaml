@@ -1,0 +1,18 @@
+# Task-specific configurations
+Mock1:
+    EPrime:
+        channels:
+            - 'RateArousal1.RESP'
+            - 'RateArousal2.RESP'
+            - 'RateEffort.RESP'
+            - 'Img'
+            - 'Condition'
+
+Mock2:
+    EPrime:
+        channels:
+            - 'RateArousal1.RESP'
+            - 'RateArousal2.RESP'
+            - 'RateEffort.RESP'
+            - 'Img'
+            - 'Condition'

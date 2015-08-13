@@ -10,6 +10,17 @@ from itertools import product
 from data_source import DataSource
 from schema import Schema, Or, Optional
 
+def _val(x, pos):
+    return np.mean(x)
+
+def _sem(x, pos):
+    return x.sem(axis=0)
+
+def _count(x, pos):
+    return np.size(x)
+
+def _nans(x, pos):
+    return np.size(pos) - np.sum(pos)
 
 class BeGaze(DataSource):
     def __init__(self, config, schedule):
@@ -18,10 +29,10 @@ class BeGaze(DataSource):
         super(BeGaze, self).__init__(config, schedule)
 
         # Diameter channel statistics
-        self.panels = {'LDiameter': {'VAL': np.mean,
-                                     'SEM': lambda x: x.sem(axis=0),
-                                     'COUNT': np.size,
-                                     'NANS': lambda x: np.isnan(x).sum()}}
+        self.panels = {'LDiameter': {'VAL': _val,
+                                     'SEM': _sem,
+                                     'COUNT': _count,
+                                     'NANS': _nans}}
 
     def process(self):
         """."""
@@ -100,8 +111,11 @@ class BeGaze(DataSource):
         # Replace any non-fixation data points with NaN values and drop the
         # 'info' axis which identifies such points.
         no_fixations = (samples['info'] != 'Fixation')
-        samples.loc[no_fixations,:] = np.nan
         samples.drop('info', axis=1, inplace=True)
+        samples['pos'] = np.invert(no_fixations)
+        samples.loc[no_fixations,'LDiameter'] = np.nan
+        samples['LDiameter'] = samples['LDiameter'].interpolate(method='spline',
+                                                                order=3)
 
         return samples
 

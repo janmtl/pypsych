@@ -29,11 +29,12 @@ class DataSource(object):
                                                skipinitialspace=True)
 
     def process(self):
-        """Placeholder method for processing the loaded files."""
+        """."""
+        self.merge_data()
         self.bin_data()
 
     def bin_data(self):
-        """Return a pandas Panel indexed by tuples of (channel, statistic)."""
+        """Makes a dict of dicts of pd.DataFrames at self.output."""
         label_bins = self.create_label_bins(self.data['labels'])
         major_axis = label_bins.index.values
         minor_axis = label_bins.drop(['Start_Time', 'End_Time'], axis=1).columns
@@ -55,7 +56,8 @@ class DataSource(object):
                     selector = (raw.index.values >= label_bin['Start_Time']) \
                                & (raw.index.values < label_bin['End_Time'])
                     samples = raw[selector][channel]
-                    stats.append(stat_fun(samples))
+                    pos = raw.loc[selector, 'pos']
+                    stats.append(stat_fun(samples, pos))
 
                 new_panel['stat'] = stats
                 output[channel][stat_name] = new_panel.sort('Bin_Order')

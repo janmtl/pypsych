@@ -11,21 +11,10 @@ import random
 import string
 import exrex
 import re
-import math
 pd.set_option('display.max_rows', 50)
 pd.set_option('display.max_columns', 500)
 pd.set_option('display.width', 1000)
-from scipy.io import savemat
-from pkg_resources import resource_filename
 from pypsych.config import Config
-from pypsych.schedule import Schedule
-from pypsych.data_sources.biopac import Biopac
-
-OUTPUT_PATH = 'tests/data/'
-N_EVENTS = 12
-BG_CONFIG_PATH = resource_filename('tests.begaze', 'begaze.yaml')
-BP_CONFIG_PATH = resource_filename('tests.biopac', 'biopac.yaml')
-BP_SCHED_PATH = resource_filename('tests.biopac', 'schedule.yaml')
 
 # Labels columns:
 # - Other Column 1
@@ -41,7 +30,8 @@ BP_SCHED_PATH = resource_filename('tests.biopac', 'schedule.yaml')
 # - L POR Y [px]
 # - L Event Info
 
-def generate_mock_begaze_data(config_path, task_name, n_events):
+
+def generate_mock_begaze_data(config_path, task_name, n_events, sched_path):
     """
     Generate Mock BeGaze labels, samples, and binned data files.
     """
@@ -72,11 +62,11 @@ def generate_mock_begaze_data(config_path, task_name, n_events):
         # Choose a random label from the configuration
         event_type = random.choice(subconfig.keys() + ['garbage_label'])
 
-        #If we choose the 'garbage_label', generate some garbage
+        # If we choose the 'garbage_label', generate some garbage
         if event_type == 'garbage_label':
             duration = random.randint(100, 1000)
-            label_name = ''.join(random.choice(string.ascii_uppercase \
-                            + string.digits) for _ in range(10))
+            label_name = ''.join(random.choice(string.ascii_uppercase
+                                 + string.digits) for _ in range(10))
             bins = 1
             event_id = 0
             event_group = 'garbage'
@@ -118,8 +108,8 @@ def generate_mock_begaze_data(config_path, task_name, n_events):
         'Duration': durations,
         'N_Bins': event_bins,
         'Start_Time': time})
-    merged_labels = merged_labels[(merged_labels['Event_Type'] != \
-                                  'garbage_label')]
+    merged_labels = merged_labels[(merged_labels['Event_Type'] !=
+                                   'garbage_label')]
 
     # Now on to the samples and binned files. We will iterate over the
     # event_types array and construct runs of data points that match the
@@ -127,7 +117,6 @@ def generate_mock_begaze_data(config_path, task_name, n_events):
 
     # samples file array must be started off with random data of the length of
     # the random displacement of the first event in the labels file.
-    samples_epoch = random.randint(1000, 10*1000)
     samples_times = [0]
     samples_other_column_1 = [0.0]
     samples_other_column_2 = [0.0]
@@ -146,7 +135,6 @@ def generate_mock_begaze_data(config_path, task_name, n_events):
     binned_pos_xs = []
     binned_pos_ys = []
     binned_nans = []
-
 
     for idx, event_type in enumerate(event_types):
         # Samples are repeated 'ticks_in_bin' number of times
@@ -179,15 +167,15 @@ def generate_mock_begaze_data(config_path, task_name, n_events):
 
             # Add these values to the arrays used to construct the samples file
             samples_times = np.append(samples_times, time_samples)
-            samples_other_column_1= np.append(samples_other_column_1,
-                other_column_1_samples)
+            samples_other_column_1 = np.append(samples_other_column_1,
+                                               other_column_1_samples)
             samples_other_column_2 = np.append(samples_other_column_2,
-                other_column_2_samples)
+                                               other_column_2_samples)
             samples_diameters = np.append(samples_diameters, diameter_samples)
             samples_pos_xs = np.append(samples_pos_xs, pos_x_samples)
             samples_pos_ys = np.append(samples_pos_ys, pos_y_samples)
             samples_event_infos = np.append(samples_event_infos,
-                event_info_samples)
+                                            event_info_samples)
 
             # Add these values to the arrays used to construct the binned file
             if event_type != 'garbage_label':
@@ -207,7 +195,7 @@ def generate_mock_begaze_data(config_path, task_name, n_events):
     samples = pd.DataFrame.from_dict({
         'Other Column 1': samples_other_column_1,
         'Other Column 2': samples_other_column_2,
-        'Time': samples_times*1000,
+        'Time': samples_times * 1000,
         'L Pupil Diameter [mm]': samples_diameters,
         'L POR X [px]': samples_pos_xs,
         'L POR Y [px]': samples_pos_ys,
@@ -229,6 +217,7 @@ def generate_mock_begaze_data(config_path, task_name, n_events):
             'merged_labels': merged_labels,
             'binned': binned}
 
+
 def save_mock_begaze_data(output_path, data, subject_id, task_order):
     """
     Save the mock begaze files to output_path.
@@ -244,97 +233,3 @@ def save_mock_begaze_data(output_path, data, subject_id, task_order):
     data['labels'].to_csv(labels_path, sep="\t")
     data['binned'].to_csv(binned_path, sep="\t")
     data['merged_labels'].to_csv(merged_labels_path, sep="\t")
-
-def generate_mock_biopac_data(config_path, task_name, begaze_data):
-
-    config = Config(path=config_path)
-    config.load()
-    subconfig = config.get_subconfig(task_name, 'Biopac')
-    schedule = Schedule(path=BP_SCHED_PATH)
-    schedule.load()
-    subschedule = schedule.get_subschedule(task_name, 'Biopac')
-
-    biopac = Biopac(config=subconfig, schedule=subschedule)
-    bp_labels = biopac._label_config_to_df(subconfig)
-    bg_labels = begaze_data['merged_labels']
-    bbg_labels = bg_labels.drop(['N_Bins', 'Duration'], axis=1)
-    labels = pd.merge(bbg_labels, bp_labels, on=['Event_Type', 'Event_Group'])
-    labels['End_Time'] = labels['Start_Time'] + labels['Duration']
-    total_time = np.max(labels['End_Time'].values)
-
-
-    # Generate data
-    event_bpms = []
-    event_rrs = []
-    event_twaves = []
-
-    events = np.repeat(255, total_time)
-    bpm = np.repeat(0.0, total_time/10)
-    rr = np.repeat(0.0, total_time/10)
-    twave = np.repeat(0.0, total_time/10)
-
-    for _, label in labels.iterrows():
-        events[label['Start_Time']:label['End_Time']] = label['flag']
-
-        event_bpm = random.uniform(60, 120)
-        event_rr = random.uniform(600, 1200)
-        event_twave = random.uniform(-0.5, 0.5)
-
-        bpm[label['Start_Time']/10:label['End_Time']/10] = event_bpm
-        rr[label['Start_Time']/10:label['End_Time']/10] = event_rr
-        twave[label['Start_Time']/10:label['End_Time']/10] = event_twave
-
-        event_bpms.append(event_bpm)
-        event_rrs.append(event_rr)
-        event_twaves.append(event_twave)
-
-    unbinned = labels
-    unbinned['bpm'] = event_bpms
-    unbinned['rr'] = event_rrs
-    unbinned['twave'] = event_twaves
-
-    samples = pd.DataFrame({'bpm': bpm, 'rr': rr, 'twave': twave})
-    labels = pd.DataFrame({'events': events})
-    return {'samples': samples, 'labels': labels, 'unbinned': unbinned}
-
-
-def save_mock_biopac_data(output_path, data, subject_id, task_order, task_name):
-    """
-    Save the mock biopac files to output_path.
-    """
-
-    base_path = ''.join([output_path,
-                         task_name,
-                         '_',
-                         str(subject_id),
-                         str(task_order)])
-    samples_path = ''.join([base_path, '_biopac_samples.txt'])
-    labels_path = ''.join([base_path, '_biopac_labels.mat'])
-    unbinned_path = ''.join([base_path, '_biopac_unbinned.txt'])
-
-    data['samples'].to_csv(samples_path, sep="\t", header=False, index=False)
-    savemat(labels_path, data['labels'].to_dict(orient='list'))
-    data['unbinned'].to_csv(unbinned_path, sep="\t")
-    pass
-
-if __name__ == '__main__':
-
-    BG_DATA = generate_mock_begaze_data(BG_CONFIG_PATH, 'Mock1', N_EVENTS)
-    BP_DATA = generate_mock_biopac_data(BP_CONFIG_PATH, 'Mock1', BG_DATA)
-    save_mock_begaze_data(OUTPUT_PATH, BG_DATA, 101, 1)
-    save_mock_biopac_data(OUTPUT_PATH, BP_DATA, 101, 1, 'Mock1')
-
-    BG_DATA = generate_mock_begaze_data(BG_CONFIG_PATH, 'Mock2', N_EVENTS)
-    BP_DATA = generate_mock_biopac_data(BP_CONFIG_PATH, 'Mock2', BG_DATA)
-    save_mock_begaze_data(OUTPUT_PATH, BG_DATA, 101, 2)
-    save_mock_biopac_data(OUTPUT_PATH, BP_DATA, 101, 2, 'Mock2')
-
-    BG_DATA = generate_mock_begaze_data(BG_CONFIG_PATH, 'Mock1', N_EVENTS)
-    BP_DATA = generate_mock_biopac_data(BP_CONFIG_PATH, 'Mock1', BG_DATA)
-    save_mock_begaze_data(OUTPUT_PATH, BG_DATA, 102, 1)
-    save_mock_biopac_data(OUTPUT_PATH, BP_DATA, 102, 1, 'Mock1')
-
-    BG_DATA = generate_mock_begaze_data(BG_CONFIG_PATH, 'Mock2', N_EVENTS)
-    BP_DATA = generate_mock_biopac_data(BP_CONFIG_PATH, 'Mock2', BG_DATA)
-    save_mock_begaze_data(OUTPUT_PATH, BG_DATA, 102, 2)
-    save_mock_biopac_data(OUTPUT_PATH, BP_DATA, 102, 2, 'Mock2')

@@ -12,6 +12,14 @@ from scipy.signal import lfilter
 from data_source import DataSource
 from schema import Schema, Or, Optional
 
+def _val(x, pos):
+    return np.mean(x)
+
+def _sem(x, pos):
+    return x.sem(axis=0)
+
+def _var(x, pos):
+    return np.var(x)
 
 class Biopac(DataSource):
     def __init__(self, config, schedule):
@@ -19,12 +27,12 @@ class Biopac(DataSource):
         # Call the parent class init
         super(Biopac, self).__init__(config, schedule)
 
-        self.panels = {'bpm': {'VAL': np.mean,
-                               'SEM': lambda x: x.sem(axis=0)},
-                       'rr': {'VAL': np.mean,
-                              'VAR': np.var},
-                       'twave': {'VAL': np.mean,
-                                 'SEM': lambda x: x.sem(axis=0)}}
+        self.panels = {'bpm': {'VAL': _val,
+                               'SEM': _sem},
+                       'rr': {'VAL': _val,
+                              'VAR': _var},
+                       'twave': {'VAL': _val,
+                                 'SEM': _sem}}
 
     def load(self, file_paths):
         """Override for data source load method to include .mat compatibility."""
@@ -40,11 +48,6 @@ class Biopac(DataSource):
         events = raw_mat['events'][:,0]
         self.data['labels'] = pd.DataFrame({'flag': events},
                                            index = np.arange(events.size))
-
-    def process(self):
-        """."""
-        self.merge_data()
-        self.bin_data()
 
     def merge_data(self):
         """
@@ -124,6 +127,7 @@ class Biopac(DataSource):
         samples = lfilter(np.ones(1000)/1000, 1, samples, axis=0)
         samples = pd.DataFrame(samples, columns = ['bpm', 'rr', 'twave'])
         samples.index = samples.index*100
+        samples['pos'] = True
         return samples
 
     @staticmethod

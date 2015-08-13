@@ -1,18 +1,46 @@
 # Task-specific configurations
 Mock1:
+    BeGaze:
+        Luke:
+            duration: 1000
+            bins: 1
+            pattern: '(?P<ID>[0-9\.]+)_Luke_(?P<Condition>Skywalker|Skyhopper)'
+            left_trim: 250
+            right_trim: 250
+        Leia:
+            duration: 2000
+            bins: 2
+            pattern: '(?P<ID>[0-9\.]+)_Leia_(?P<Condition>Skywalker|Skyhopper)'
+        Han:
+            duration: 4000
+            bins: 3
+            pattern: '(?P<ID>[0-9\.]+)_Han_(?P<Condition>Solo|Bolo)'
+    Biopac:
+        Luke:
+            duration: 1000
+            bins: 1
+            pattern: {Skywalker: 2, Skyhopper: 5}
+        Leia:
+            duration: 2000
+            bins: 2
+            pattern: {Skywalker: 3, Skyhopper: 6}
     EPrime:
         channels:
-            - 'RateArousal1.RESP'
-            - 'RateArousal2.RESP'
-            - 'RateEffort.RESP'
-            - 'Img'
-            - 'Condition'
+            - 'Made.up.column1'
+            - 'Made.up.column2'
 
 Mock2:
+    BeGaze:
+        Darth:
+            duration: 1000
+            bins: 1
+            pattern: '(?P<ID>[0-9\.]+)_Darth_(?P<Condition>Vader|Sidius)'
+    Biopac:
+        Darth:
+            duration: 1000
+            bins: 1
+            pattern: {Vader: 4, Sidius: 7}
     EPrime:
         channels:
-            - 'RateArousal1.RESP'
-            - 'RateArousal2.RESP'
-            - 'RateEffort.RESP'
-            - 'Img'
-            - 'Condition'
+            - 'Made.up.column1'
+            - 'Made.up.column2'

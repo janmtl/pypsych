@@ -1,8 +1,6 @@
-	Duration	Event_Group	Event_ID	Event_Order	Event_Type	N_Bins	Start_Time
-2	1000	Vader	2083881.327.2371901	2	Darth	1	3427
-4	1000	Vader	044.32.67	4	Darth	1	5238
-6	1000	Sidius	3.34.9322647.36646	6	Darth	1	6616
-8	1000	Vader	758	8	Darth	1	8476
-9	1000	Vader	912755.270791	9	Darth	1	9476
-10	1000	Vader	.809990673.65	10	Darth	1	10476
-11	1000	Sidius	871	11	Darth	1	11476
+	Condition	Duration	Event_Order	ID	Label	N_Bins	Start_Time
+2	Sidius	1000	2	49961583005651.02	Darth	1	2000
+3	Vader	1000	3	3943148.54	Darth	1	3000
+4	Sidius	1000	4	.751206771745148181.2	Darth	1	4000
+7	Sidius	1000	7	34222451337806	Darth	1	5919
+11	Sidius	1000	11	5188901599.67	Darth	1	8133

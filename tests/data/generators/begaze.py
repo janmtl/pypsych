@@ -76,8 +76,8 @@ def generate_mock_begaze_data(config_path, task_name, n_events, sched_path):
             label_name = exrex.getone(subconfig[event_type]['pattern'])
             lm = re.match(subconfig[event_type]['pattern'], label_name)
             md = lm.groupdict()
-            event_id = md['Event_ID']
-            event_group = md['Event_Group']
+            event_id = md['ID']
+            event_group = md['Condition']
 
         time.append(epoch)
         event.append(label_name)
@@ -101,14 +101,14 @@ def generate_mock_begaze_data(config_path, task_name, n_events, sched_path):
     # steps
 
     merged_labels = pd.DataFrame.from_dict({
-        'Event_Type': event_types,
-        'Event_Group': event_groups,
-        'Event_ID': event_ids,
+        'Label': event_types,
+        'Condition': event_groups,
+        'ID': event_ids,
         'Event_Order': event_orders,
         'Duration': durations,
         'N_Bins': event_bins,
         'Start_Time': time})
-    merged_labels = merged_labels[(merged_labels['Event_Type'] !=
+    merged_labels = merged_labels[(merged_labels['Label'] !=
                                    'garbage_label')]
 
     # Now on to the samples and binned files. We will iterate over the
@@ -202,9 +202,9 @@ def generate_mock_begaze_data(config_path, task_name, n_events, sched_path):
         'L Event Info': samples_event_infos})
 
     binned = pd.DataFrame.from_dict({
-        'Event_Type': binned_event_types,
-        'Event_ID': binned_event_ids,
-        'Event_Group': binned_event_groups,
+        'Label': binned_event_types,
+        'ID': binned_event_ids,
+        'Condition': binned_event_groups,
         'Event_Order': binned_event_orders,
         'Bin_Number': binned_bin_numbers,
         'L Diameter': binned_diameters,
@@ -218,7 +218,7 @@ def generate_mock_begaze_data(config_path, task_name, n_events, sched_path):
             'binned': binned}
 
 
-def save_mock_begaze_data(output_path, data, subject_id, task_order):
+def save_mock_begaze_data(output_path, data, subject_id, task_order, task_name):
     """
     Save the mock begaze files to output_path.
     """

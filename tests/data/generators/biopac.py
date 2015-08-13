@@ -44,7 +44,7 @@ def generate_mock_biopac_data(config_path, task_name, begaze_data, sched_path):
     bp_labels = biopac._label_config_to_df(subconfig)
     bg_labels = begaze_data['merged_labels']
     bbg_labels = bg_labels.drop(['N_Bins', 'Duration'], axis=1)
-    labels = pd.merge(bbg_labels, bp_labels, on=['Event_Type', 'Event_Group'])
+    labels = pd.merge(bbg_labels, bp_labels, on=['Label', 'Condition'])
     labels['End_Time'] = labels['Start_Time'] + labels['Duration']
     total_time = np.max(labels['End_Time'].values)
 

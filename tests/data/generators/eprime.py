@@ -20,5 +20,5 @@ def generate_mock_eprime_data(config_path, task_name, begaze_data, sched_path):
     pass
 
 
-def save_mock_eprime_data(output_path, data, subject_id, task_order):
+def save_mock_eprime_data(output_path, data, subject_id, task_order, task_name):
     pass

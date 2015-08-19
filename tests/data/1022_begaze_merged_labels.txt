@@ -1,4 +1,8 @@
 	Condition	Duration	Event_Order	ID	Label	N_Bins	Start_Time
-4	Vader	1000	4	5	Darth	1	2933
-6	Vader	1000	6	74205..00729516	Darth	1	4616
-11	Sidius	1000	11	49023495760263.57492	Darth	1	7394
+0	Sidius	1000	0	2.580076301560100	Darth	1	1800
+1	Vader	1000	1	13968910871	Darth	1	2800
+3	Vader	1000	3	231911260	Darth	1	3992
+6	Vader	1000	6	08.3.17507815	Darth	1	6484
+7	Sidius	1000	7	4.9911984264.02.8	Darth	1	7484
+8	Sidius	1000	8	.967	Darth	1	8484
+9	Vader	1000	9	3	Darth	1	9484

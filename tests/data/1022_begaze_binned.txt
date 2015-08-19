@@ -1,4 +1,8 @@
 	Bin_Number	Condition	Event_Order	ID	L Diameter	Label	NANS	Pos X	Pos Y
-0	0	Vader	4	5	3.53	Darth	24	691	537
-1	0	Vader	6	74205..00729516	3.16	Darth	40	413	362
-2	0	Sidius	11	49023495760263.57492	5.8	Darth	27	146	402
+0	0	Sidius	0	2.580076301560100	6.01	Darth	20	635	272
+1	0	Vader	1	13968910871	3.54	Darth	20	611	654
+2	0	Vader	3	231911260	4.27	Darth	37	971	371
+3	0	Vader	6	08.3.17507815	6.58	Darth	23	306	754
+4	0	Sidius	7	4.9911984264.02.8	4.97	Darth	6	869	62
+5	0	Sidius	8	.967	4.1	Darth	2	94	427
+6	0	Vader	9	3	4.69	Darth	12	788	182

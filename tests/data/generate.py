@@ -17,12 +17,8 @@ from generators.eprime import generate_mock_eprime_data, save_mock_eprime_data
 
 OUTPUT_PATH = 'tests/data/'
 N_EVENTS = 12
-BG_CONFIG_PATH = resource_filename('tests.begaze', 'begaze.yaml')
-BP_CONFIG_PATH = resource_filename('tests.biopac', 'biopac.yaml')
-EP_CONFIG_PATH = resource_filename('tests.eprime', 'eprime.yaml')
-BG_SCHED_PATH = resource_filename('tests.begaze', 'schedule.yaml')
-BP_SCHED_PATH = resource_filename('tests.biopac', 'schedule.yaml')
-EP_SCHED_PATH = resource_filename('tests.eprime', 'schedule.yaml')
+CONFIG_PATH = resource_filename('tests.config', 'config.yaml')
+SCHED_PATH = resource_filename('tests.schedule', 'schedule.yaml')
 
 
 if __name__ == '__main__':
@@ -31,12 +27,12 @@ if __name__ == '__main__':
                                               (102, 1, 'Mock1'),
                                               (102, 2, 'Mock2')]:
         # Generate mock datas (beware of order)
-        BG_DATA = generate_mock_begaze_data(BG_CONFIG_PATH, task_name, N_EVENTS,
-                                            BG_SCHED_PATH)
-        BP_DATA = generate_mock_biopac_data(BP_CONFIG_PATH, task_name, BG_DATA,
-                                            BP_SCHED_PATH)
-        EP_DATA = generate_mock_eprime_data(EP_CONFIG_PATH, task_name, BG_DATA,
-                                            EP_SCHED_PATH)
+        BG_DATA = generate_mock_begaze_data(CONFIG_PATH, task_name, N_EVENTS,
+                                            SCHED_PATH)
+        BP_DATA = generate_mock_biopac_data(CONFIG_PATH, task_name, BG_DATA,
+                                            SCHED_PATH)
+        EP_DATA = generate_mock_eprime_data(CONFIG_PATH, task_name, BG_DATA,
+                                            SCHED_PATH)
 
         # Save mock datas
         save_mock_begaze_data(OUTPUT_PATH, BG_DATA, subject_id, task_order,

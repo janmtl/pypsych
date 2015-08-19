@@ -1,0 +1,6 @@
+	Condition	Img	Made.up.column1	Made.up.column2
+0	Vader	252.66924677.3	3	8
+2	Vader	149342903	4	6
+3	Vader	800761726557254910242	1	7
+5	Vader	198924432459563	6	5
+11	Sidius	6199815.648377	4	9

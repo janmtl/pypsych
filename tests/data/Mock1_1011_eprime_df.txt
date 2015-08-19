@@ -1,0 +1,11 @@
+	Condition	Img	Made.up.column1	Made.up.column2
+0	Solo	88038858465.3	3	9
+1	Bolo	8	5	1
+4	Skywalker	16458495207374..9166.	1	7
+5	Skywalker	60988.0536.4667..783	8	2
+6	Skyhopper	88063593	2	8
+7	Skywalker	.3	6	9
+8	Skywalker	335188.065882802	7	5
+9	Skywalker	411.41668895805	9	6
+10	Skyhopper	1.91.4103556788	7	3
+11	Skyhopper	47..2	6	8

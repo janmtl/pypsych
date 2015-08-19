@@ -1,0 +1,11 @@
+	Condition	Img	Made.up.column1	Made.up.column2
+0	Skyhopper	562765155.3.	7	2
+1	Solo	454	2	1
+2	Solo	.9309930276.2	6	4
+3	Skyhopper	76790040367477	7	7
+4	Solo	46	9	0
+5	Solo	7342160.4866234	1	3
+7	Skyhopper	06478234807.6	7	3
+8	Skyhopper	932	6	8
+10	Skyhopper	41.452314	5	6
+11	Skyhopper	79437105	4	0

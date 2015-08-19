@@ -6,11 +6,9 @@
 # TODO(janmtl): Provide an interface that deuglifies the _0 and channels in this
 # interface
 import pandas as pd
-import numpy as np
 import io
 from data_source import DataSource
-from schema import Schema, Or, Optional
-from StringIO import StringIO
+from schema import Schema
 
 
 class EPrime(DataSource):
@@ -18,9 +16,6 @@ class EPrime(DataSource):
         """."""
         # Call the parent class init
         super(EPrime, self).__init__(config, schedule)
-
-        # TODO(janmtl): This needs to be initialized correctly
-        self.panels = {'channel': {'stat': lambda x: x}}
 
     def load(self, file_paths):
         """Load Keyvalue-format edat file."""
@@ -43,16 +38,19 @@ class EPrime(DataSource):
     def merge_data(self):
         """Clean the EPrime file data."""
         self.data['samples'] = self._clean_samples(self.data['samples'])
-        self.data['samples'] = self.data['samples'][self.config['columns']]
+        sel = ['ID', 'Condition'] + self.config['channels']
+        self.data['samples'] = self.data['samples'][sel]
 
     def bin_data(self):
         """Makes a dict of dicts of pd.DataFrames at self.output."""
-        self.output = None
+        self.output = {channel: self.data['samples'][['ID', 'Condition',
+                                                      channel]]
+                       for channel in self.config['channels']}
 
     @staticmethod
     def _clean_samples(samples):
         """."""
-        return samples.rename({'Img': 'ID'}, axis=1)
+        return samples.rename(columns={'Img': 'ID'})
 
     @staticmethod
     def _validate_config(raw):
@@ -61,7 +59,7 @@ class EPrime(DataSource):
 
         Args:
           raw (dict): must match the following schema
-            {columns: [column_names]}
+            {channels: [column_names]}
         """
         schema = Schema({'channels': [str]})
         return schema.validate(raw)

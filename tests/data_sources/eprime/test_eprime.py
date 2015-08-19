@@ -27,9 +27,9 @@ class EprimeLoading(unittest.TestCase):
 
     def setUp(self):
         # Load a config and a schedule
-        config = Config(path=resource_filename('tests.eprime', 'eprime.yaml'))
+        config = Config(path=resource_filename('tests.config', 'config.yaml'))
         config.load()
-        schedule = Schedule(path=resource_filename('tests.eprime',
+        schedule = Schedule(path=resource_filename('tests.schedule',
                                                    'schedule.yaml'))
         schedule.load()
         schedule.compile('tests/data')
@@ -58,9 +58,9 @@ class EPrimeBinData(unittest.TestCase):
 
     def setUp(self):
         # Load a config and a schedule
-        config = Config(path=resource_filename('tests.eprime', 'eprime.yaml'))
+        config = Config(path=resource_filename('tests.config', 'config.yaml'))
         config.load()
-        schedule = Schedule(path=resource_filename('tests.eprime',
+        schedule = Schedule(path=resource_filename('tests.schedule',
                                                    'schedule.yaml'))
         schedule.load()
         schedule.compile('tests/data')
@@ -78,6 +78,7 @@ class EPrimeBinData(unittest.TestCase):
     def test_bin_data(self):
         """Test if stats are being calculated correctly."""
         self.eprime.bin_data()
+        print self.eprime.output
 
 if __name__ == '__main__':
     unittest.main()

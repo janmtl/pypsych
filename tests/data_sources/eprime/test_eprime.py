@@ -78,7 +78,6 @@ class EPrimeBinData(unittest.TestCase):
     def test_bin_data(self):
         """Test if stats are being calculated correctly."""
         self.eprime.bin_data()
-        print self.eprime.output
 
 if __name__ == '__main__':
     unittest.main()

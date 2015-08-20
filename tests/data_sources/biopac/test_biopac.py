@@ -51,9 +51,9 @@ class BiopacLoadingTestCases(unittest.TestCase):
 
     def setUp(self):
         # Load a config and a schedule
-        config = Config(path=resource_filename('tests.biopac', 'biopac.yaml'))
+        config = Config(path=resource_filename('tests.config', 'config.yaml'))
         config.load()
-        schedule = Schedule(path=resource_filename('tests.biopac', 
+        schedule = Schedule(path=resource_filename('tests.schedule',
                                                    'schedule.yaml'))
         schedule.load()
         schedule.compile('tests/data')
@@ -81,9 +81,9 @@ class BeGazeMergeLabelsConfig(unittest.TestCase):
 
     def setUp(self):
         # Load a config and a schedule
-        config = Config(path=resource_filename('tests.biopac', 'biopac.yaml'))
+        config = Config(path=resource_filename('tests.config', 'config.yaml'))
         config.load()
-        schedule = Schedule(path=resource_filename('tests.biopac', 
+        schedule = Schedule(path=resource_filename('tests.schedule',
                                                    'schedule.yaml'))
         schedule.load()
         schedule.compile('tests/data')
@@ -109,9 +109,9 @@ class BeGazeBinData(unittest.TestCase):
 
     def setUp(self):
         # Load a config and a schedule
-        config = Config(path=resource_filename('tests.biopac', 'biopac.yaml'))
+        config = Config(path=resource_filename('tests.config', 'config.yaml'))
         config.load()
-        schedule = Schedule(path=resource_filename('tests.biopac', 
+        schedule = Schedule(path=resource_filename('tests.schedule',
                                                    'schedule.yaml'))
         schedule.load()
         schedule.compile('tests/data')

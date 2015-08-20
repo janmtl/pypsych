@@ -51,9 +51,9 @@ class BeGazeLoadingTestCases(unittest.TestCase):
 
     def setUp(self):
         # Load a config and a schedule
-        config = Config(path=resource_filename('tests.begaze', 'begaze.yaml'))
+        config = Config(path=resource_filename('tests.config', 'config.yaml'))
         config.load()
-        schedule = Schedule(path=resource_filename('tests.begaze', 
+        schedule = Schedule(path=resource_filename('tests.schedule',
                                                    'schedule.yaml'))
         schedule.load()
         schedule.compile('tests/data')
@@ -81,9 +81,9 @@ class BeGazeMergeLabelsConfig(unittest.TestCase):
 
     def setUp(self):
         # Load a config and a schedule
-        config = Config(path=resource_filename('tests.begaze', 'begaze.yaml'))
+        config = Config(path=resource_filename('tests.config', 'config.yaml'))
         config.load()
-        schedule = Schedule(path=resource_filename('tests.begaze', 
+        schedule = Schedule(path=resource_filename('tests.schedule',
                                                    'schedule.yaml'))
         schedule.load()
         schedule.compile('tests/data')
@@ -102,7 +102,7 @@ class BeGazeMergeLabelsConfig(unittest.TestCase):
         valid_labels_path = resource_filename(
             'tests.data',
             '1011_begaze_merged_labels.txt')
-        
+
         valid_labels = pd.read_csv(valid_labels_path,
                                    delimiter="\t",
                                    index_col=0,
@@ -125,9 +125,9 @@ class BeGazeBinData(unittest.TestCase):
 
     def setUp(self):
         # Load a config and a schedule
-        config = Config(path=resource_filename('tests.begaze', 'begaze.yaml'))
+        config = Config(path=resource_filename('tests.config', 'config.yaml'))
         config.load()
-        schedule = Schedule(path=resource_filename('tests.begaze', 
+        schedule = Schedule(path=resource_filename('tests.schedule',
                                                    'schedule.yaml'))
         schedule.load()
         schedule.compile('tests/data')

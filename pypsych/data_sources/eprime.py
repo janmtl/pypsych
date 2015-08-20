@@ -5,6 +5,7 @@
 
 # TODO(janmtl): Provide an interface that deuglifies the _0 and channels in this
 # interface
+import numpy as np
 import pandas as pd
 import io
 from data_source import DataSource
@@ -16,6 +17,10 @@ class EPrime(DataSource):
         """."""
         # Call the parent class init
         super(EPrime, self).__init__(config, schedule)
+
+        channels = self.config['channels']
+        self.panels = {channel: {'VAL': (lambda x, pos: x)}
+                       for channel in channels}
 
     def load(self, file_paths):
         """Load Keyvalue-format edat file."""
@@ -40,12 +45,19 @@ class EPrime(DataSource):
         self.data['samples'] = self._clean_samples(self.data['samples'])
         sel = ['ID', 'Condition'] + self.config['channels']
         self.data['samples'] = self.data['samples'][sel]
+        self.data['samples']['pos'] = True
+        self.data['labels'] = self.data['samples'][['ID', 'Condition']]
+        self.data['labels'].loc[:, 'Label'] = self.data['labels'].index.values
 
-    def bin_data(self):
-        """Makes a dict of dicts of pd.DataFrames at self.output."""
-        self.output = {channel: self.data['samples'][['ID', 'Condition',
-                                                      channel]]
-                       for channel in self.config['channels']}
+    def create_label_bins(self, labels):
+        """Construct the dummy label_bins dataframe."""
+        label_bins = labels
+        label_bins.loc[:, 'Order'] = labels.index.values
+        label_bins.loc[:, 'Bin_Order'] = labels.index.values
+        label_bins.loc[:, 'Start_Time'] = 0
+        label_bins.loc[:, 'End_Time'] = 0
+        label_bins.loc[:, 'Bin_Index'] = 0
+        return label_bins
 
     @staticmethod
     def _clean_samples(samples):

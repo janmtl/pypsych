@@ -28,9 +28,8 @@ class ExperimentLoadingTestCases(unittest.TestCase):
 
     def setUp(self):
         # Load a config and a schedule
-        self.config_path = resource_filename('tests.experiment',
-                                             'data_sources.yaml')
-        self.schedule_path = resource_filename('tests.experiment',
+        self.config_path = resource_filename('tests.config', 'config.yaml')
+        self.schedule_path = resource_filename('tests.schedule',
                                                'schedule.yaml')
         self.data_path = 'tests/data'
 
@@ -59,9 +58,8 @@ class ExperimentProcessingTestCases(unittest.TestCase):
 
     def setUp(self):
         # Load a config and a schedule
-        self.config_path = resource_filename('tests.experiment',
-                                             'data_sources.yaml')
-        self.schedule_path = resource_filename('tests.experiment',
+        self.config_path = resource_filename('tests.config', 'config.yaml')
+        self.schedule_path = resource_filename('tests.schedule',
                                                'schedule.yaml')
         self.data_path = 'tests/data'
 
@@ -82,9 +80,8 @@ class ExperimentSavingTestCases(unittest.TestCase):
 
     def setUp(self):
         # Load a config and a schedule
-        self.config_path = resource_filename('tests.experiment',
-                                             'data_sources.yaml')
-        self.schedule_path = resource_filename('tests.experiment',
+        self.config_path = resource_filename('tests.config', 'config.yaml')
+        self.schedule_path = resource_filename('tests.schedule',
                                                'schedule.yaml')
         self.data_path = 'tests/data'
         self.output_path = 'tests/output'

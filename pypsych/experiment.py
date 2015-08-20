@@ -5,14 +5,15 @@
 Includes the Experiment class.
 """
 import pandas as pd
-import numpy  as np
 from config import Config
 from schedule import Schedule
 from data_sources.begaze import BeGaze
 from data_sources.biopac import Biopac
+from data_sources.eprime import EPrime
 from clint.textui import progress
 
-DATA_SOURCES = {'BeGaze': BeGaze, 'Biopac': Biopac}
+DATA_SOURCES = {'BeGaze': BeGaze, 'Biopac': Biopac, 'EPrime': EPrime}
+
 
 class Experiment(object):
     """
@@ -43,9 +44,9 @@ class Experiment(object):
         """
         self.schedule.compile(self.data_path)
 
-        task_datas = self.schedule.\
-                        sched_df[['Task_Name', 'Data_Source_Name']].\
-                        drop_duplicates()
+        task_datas = self.schedule\
+                         .sched_df[['Task_Name', 'Data_Source_Name']]\
+                         .drop_duplicates()
 
         for _, task_data in task_datas.iterrows():
             subconfig = self.config.get_subconfig(*tuple(task_data))
@@ -99,7 +100,7 @@ class Experiment(object):
                     else:
                         self.output[task_name][channel] = ds_out[channel]
 
-                prog = prog +1
+                prog = prog + 1
                 pbar.show(prog)
 
     def pivot_outputs(self):
@@ -113,15 +114,14 @@ class Experiment(object):
             for channel, stats in self.output[task_name].iteritems():
                 pivot_out[task_name][channel] = {}
                 stats.loc[:, :, 'Event'] = stats.loc[:, :, 'Label'] \
-                                          + stats.loc[:, :, 'Bin_Index'].\
-                                          astype(str)
+                                           + stats.loc[:, :, 'Bin_Index'] \
+                                           .astype(str)
                 for stat_name, stat in stats.iteritems():
                     # Only allow for indices which are filled and discard the
                     # rest
                     full_cols = stat[['Subject', 'Condition',
-                                      'ID', 'Order']].\
-                                    dropna(how='all', axis=1).\
-                                    columns
+                                      'ID', 'Order']].dropna(how='all', axis=1)\
+                                                     .columns
 
                     if ('ID' in full_cols) & ('Order' in full_cols):
                         full_cols.drop('Order')
@@ -137,7 +137,6 @@ class Experiment(object):
 
         return pivot_out
 
-
     # Useful function for recursing down a dictionary of DataFrames
     def save_output(self, output, output_path):
         self._recurse_dict_and_save_df(output, output_path)
@@ -152,7 +151,7 @@ class Experiment(object):
         else:
             pass
 
-    #Shortcuts
+    # Shortcuts
     def remove_subject(self, subject_ids):
         """Removes the given subject or subjects."""
         if isinstance(subject_ids, list):

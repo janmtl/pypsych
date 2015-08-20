@@ -74,7 +74,7 @@ class ScheduleLoadingTestCases(unittest.TestCase):
         """Should throw an error when yaml file does match schema."""
         with self.assertRaises(schema.SchemaError):
             schedule = Schedule(path=resource_filename(
-                'tests.schedule',                          
+                'tests.schedule',
                 'bad_schema.yaml'
                 ))
             schedule.load()
@@ -134,13 +134,13 @@ class ScheduleCompilationTestCases(unittest.TestCase):
     def test_get_subschedule(self):
         """Test the task, data source schedule getter."""
         test_dict = self.schedule.get_subschedule('Mock1', 'BeGaze')
-        valid_dict = {'samples': ''.join(['(?P<Subject_ID>[0-9]{3})',
-                                          '(?P<Task_Order>[0-9])',
-                                          '_begaze_samples.txt']),
-                      'labels': ''.join(['(?P<Subject_ID>[0-9]{3})',
-                                         '(?P<Task_Order>[0-9])',
-                                         '_begaze_labels.txt'])}
+        valid_dict = {
+            'samples':
+            '(?P<Subject>[0-9]{3})(?P<Task_Order>[0-9])_begaze_samples.txt',
+            'labels':
+            '(?P<Subject>[0-9]{3})(?P<Task_Order>[0-9])_begaze_labels.txt'}
         self.assertEqual(test_dict, valid_dict)
+
 
 class ScheduleValidationTestCases(unittest.TestCase):
     """

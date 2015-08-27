@@ -112,8 +112,7 @@ class Experiment(object):
             for channel, stats in self.output[task_name].iteritems():
                 pivot_out[task_name][channel] = {}
                 stats.loc[:, :, 'Event'] = stats.loc[:, :, 'Label'] \
-                                           + stats.loc[:, :, 'Bin_Index'] \
-                                           .astype(str)
+                    + stats.loc[:, :, 'Bin_Index'].astype(str)
                 for stat_name, stat in stats.iteritems():
                     # Only allow for indices which are filled and discard the
                     # rest

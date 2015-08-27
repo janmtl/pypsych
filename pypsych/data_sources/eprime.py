@@ -5,7 +5,6 @@
 
 # TODO(janmtl): Provide an interface that deuglifies the _0 and channels in this
 # interface
-import numpy as np
 import pandas as pd
 import io
 from data_source import DataSource

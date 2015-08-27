@@ -10,7 +10,7 @@ Schema (YAML):
     {data_source_name (str): data_source_configuration (dict)}
   }
 """
-from schema import Schema, Or
+from schema import Schema
 import yaml
 import functools
 
@@ -40,7 +40,8 @@ class Config(object):
 
     Methods:
       load: loads the yaml from file.
-      get_subconfig: fetch the configuration dict for the given task and data source.
+      get_subconfig: fetch the configuration dict for the given task and data
+        source.
       validate_schema: Check yaml against schema.
       validate_data_source_names Check yaml against valid data source names.
     """
@@ -75,7 +76,7 @@ class Config(object):
     @staticmethod
     def validate_schema(raw):
         """Validate the config dictionary against the schema described above."""
-        schema = Schema({str:{str: dict}})
+        schema = Schema({str: {str: dict}})
         return schema.validate(raw)
 
     @staticmethod
@@ -93,7 +94,7 @@ class Config(object):
 
         for _, task in raw.iteritems():
             for data_source_name in task.keys():
-                if not data_source_name in valid_data_source_names:
+                if data_source_name not in valid_data_source_names:
                     raise Exception(
                         'Config could not validate data source ',
                         data_source_name

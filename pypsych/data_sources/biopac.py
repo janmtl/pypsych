@@ -5,8 +5,7 @@
 Includes the Biopac data source class
 """
 import pandas as pd
-import numpy  as np
-from itertools import product
+import numpy as np
 from scipy.io import loadmat
 from scipy.signal import lfilter
 from data_source import DataSource
@@ -39,19 +38,19 @@ class Biopac(DataSource):
                                  'SEM': _sem}}
 
     def load(self, file_paths):
-        """Override for data source load method to include .mat compatibility."""
+        """Override for load method to include .mat compatibility."""
         self.data['samples'] = pd.read_csv(file_paths['samples'],
                                            comment="#",
                                            delimiter="\t",
                                            skipinitialspace=True,
                                            header=False,
                                            index_col=False,
-                                           names = ['bpm', 'rr', 'twave'])
+                                           names=['bpm', 'rr', 'twave'])
 
         raw_mat = loadmat(file_paths['labels'])
-        events = raw_mat['events'][:,0]
+        events = raw_mat['events'][:, 0]
         self.data['labels'] = pd.DataFrame({'flag': events},
-                                           index = np.arange(events.size))
+                                           index=np.arange(events.size))
 
     def merge_data(self):
         """
@@ -78,25 +77,23 @@ class Biopac(DataSource):
             pattern = label_config['pattern']
             if isinstance(pattern, dict):
                 for event_group, flag in label_config['pattern'].iteritems():
-                    labels_list.append({'Label': event_type,
-                                        'Condition': event_group,
-                                        'Duration': label_config['duration'],
-                                        'N_Bins': label_config['bins'],
-                                        'Left_Trim': label_config.\
-                                            get('left_trim', 0),
-                                        'Right_Trim': label_config.\
-                                            get('right_trim', 0),
-                                        'flag': flag})
+                    labels_list.append({
+                        'Label': event_type,
+                        'Condition': event_group,
+                        'Duration': label_config['duration'],
+                        'N_Bins': label_config['bins'],
+                        'Left_Trim': label_config.get('left_trim', 0),
+                        'Right_Trim': label_config.get('right_trim', 0),
+                        'flag': flag})
             elif isinstance(pattern, int):
-                labels_list.append({'Label': event_type,
-                                    'Condition': np.nan,
-                                    'Duration': label_config['duration'],
-                                    'N_Bins': label_config['bins'],
-                                    'Left_Trim': label_config.\
-                                        get('left_trim', 0),
-                                    'Right_Trim': label_config.\
-                                        get('right_trim', 0),
-                                    'flag': pattern})
+                labels_list.append({
+                    'Label': event_type,
+                    'Condition': np.nan,
+                    'Duration': label_config['duration'],
+                    'N_Bins': label_config['bins'],
+                    'Left_Trim': label_config.get('left_trim', 0),
+                    'Right_Trim': label_config.get('right_trim', 0),
+                    'flag': pattern})
             else:
                 raise Exception('Bad Biopac config flag {}'.format(pattern))
 
@@ -113,7 +110,7 @@ class Biopac(DataSource):
         low_offset = np.append(-255, flags)
         high_offset = np.append(flags, flags[-1])
         event_flags = flags[(low_offset-high_offset) != 0]
-        start_times= np.where((low_offset-high_offset) != 0)[0]
+        start_times = np.where((low_offset-high_offset) != 0)[0]
 
         labels = pd.DataFrame({'flag': event_flags,
                                'Start_Time': start_times})
@@ -129,7 +126,7 @@ class Biopac(DataSource):
         """
         samples = lfilter(np.ones(1000)/1000, 1, samples, axis=0)
         samples = lfilter(np.ones(1000)/1000, 1, samples, axis=0)
-        samples = pd.DataFrame(samples, columns = ['bpm', 'rr', 'twave'])
+        samples = pd.DataFrame(samples, columns=['bpm', 'rr', 'twave'])
         samples.index = samples.index*100
         samples['pos'] = True
         return samples
@@ -153,7 +150,7 @@ class Biopac(DataSource):
                                            'Condition', 'Bin_Order',
                                            'Start_Time', 'End_Time',
                                            'Bin_Index'],
-                                  index=np.arange(0,total_bins))
+                                  index=np.arange(0, total_bins))
         idx = 0
         for _, label in labels.iterrows():
             n_bins = label['N_Bins']
@@ -162,8 +159,8 @@ class Biopac(DataSource):
                                      + label['Duration']
                                      - label['Right_Trim']),
                                num=n_bins+1)
-            label_info = np.tile(label.as_matrix(columns = ['Label',
-                                                            'Condition']),
+            label_info = np.tile(label.as_matrix(columns=['Label',
+                                                          'Condition']),
                                  (n_bins, 1))
 
             # Order and ID
@@ -171,13 +168,13 @@ class Biopac(DataSource):
             # Label, Condition
             label_bins.iloc[idx:idx+n_bins, 2:4] = label_info
             # Bin_Order
-            label_bins.iloc[idx:idx+n_bins, 4] = idx+np.arange(0,n_bins,1)
+            label_bins.iloc[idx:idx+n_bins, 4] = idx+np.arange(0, n_bins, 1)
             # Start_Time
             label_bins.iloc[idx:idx+n_bins, 5] = cuts[0:n_bins]
             # End_Time
             label_bins.iloc[idx:idx+n_bins, 6] = cuts[1:n_bins+1]
             # Bin_Index
-            label_bins.iloc[idx:idx+n_bins, 7] = np.arange(0,n_bins,1)
+            label_bins.iloc[idx:idx+n_bins, 7] = np.arange(0, n_bins, 1)
 
             idx = idx + n_bins
 

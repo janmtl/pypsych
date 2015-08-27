@@ -6,7 +6,6 @@ Provides the base DataSource class for pypsych data sources.
 """
 
 import pandas as pd
-import numpy as np
 
 
 class DataSource(object):
@@ -54,7 +53,7 @@ class DataSource(object):
                 new_panel.drop(['Start_Time', 'End_Time'], axis=1, inplace=True)
                 for _, label_bin in label_bins.iterrows():
                     selector = (raw.index.values >= label_bin['Start_Time']) \
-                               & (raw.index.values < label_bin['End_Time'])
+                        & (raw.index.values < label_bin['End_Time'])
                     samples = raw[selector][channel]
                     pos = raw.loc[selector, 'pos']
                     stats.append(stat_fun(samples, pos))

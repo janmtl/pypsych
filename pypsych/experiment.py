@@ -19,10 +19,10 @@ class Experiment(object):
     """
     Main task runner for pypsych.
     """
-    def __init__(self, config_path, schedule_path, data_path):
+    def __init__(self, config_path, schedule_path, data_paths):
         self.config_path = config_path
         self.schedule_path = schedule_path
-        self.data_path = data_path
+        self.data_paths = data_paths
         self.config = Config(self.config_path)
         self.schedule = Schedule(self.schedule_path)
         self.output = {}
@@ -32,17 +32,15 @@ class Experiment(object):
         # bitmaps repeatedly.
         self.data_sources = {}
 
-    def load(self):
-        """Create and load the configuration and schedule."""
-        self.config.load()
-        self.schedule.load()
-
     def compile(self):
         """
-        Compile the schedule on the data_path and spin-up the data sources
+        Compile the schedule on the data_paths and spin-up the data sources
         for each task_name.
         """
-        self.schedule.compile(self.data_path)
+        self._load()
+        self.schedule.compile(self.data_paths)
+        self.schedule.validate_subjects()
+        self.schedule.drop_incomplete_subjects()
 
         task_datas = self.schedule\
                          .sched_df[['Task_Name', 'Data_Source_Name']]\
@@ -137,6 +135,11 @@ class Experiment(object):
 
         return pivot_out
 
+    def _load(self):
+        """Create and load the configuration and schedule."""
+        self.config.load()
+        self.schedule.load()
+
     # Useful function for recursing down a dictionary of DataFrames
     def save_output(self, output, output_path):
         self._recurse_dict_and_save_df(output, output_path)
@@ -168,3 +171,7 @@ class Experiment(object):
         """Removes all tasks except given task name."""
         self.schedule.isolate_task(task_name)
         self.config.isolate_task(task_name)
+
+    def isolate_data_source(self, data_source_name):
+        """Removes all data sources except given data source name."""
+        self.schedule.isolate_data_source(data_source_name)

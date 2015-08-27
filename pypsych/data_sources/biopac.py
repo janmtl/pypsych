@@ -12,18 +12,22 @@ from scipy.signal import lfilter
 from data_source import DataSource
 from schema import Schema, Or, Optional
 
+
 def _val(x, pos):
     return np.mean(x)
+
 
 def _sem(x, pos):
     return x.sem(axis=0)
 
+
 def _var(x, pos):
     return np.var(x)
 
+
 class Biopac(DataSource):
     def __init__(self, config, schedule):
-        
+
         # Call the parent class init
         super(Biopac, self).__init__(config, schedule)
 
@@ -60,7 +64,7 @@ class Biopac(DataSource):
         self.data['labels'] = self._clean_labels(self.data['labels'])
 
         self.label_config = self._label_config_to_df(self.config)
-        
+
         # Combine the labels data with the labels configuration
         self.data['labels'] = self._merge_labels_and_config(
             labels=self.data['labels'],
@@ -174,7 +178,7 @@ class Biopac(DataSource):
             label_bins.iloc[idx:idx+n_bins, 6] = cuts[1:n_bins+1]
             # Bin_Index
             label_bins.iloc[idx:idx+n_bins, 7] = np.arange(0,n_bins,1)
-            
+
             idx = idx + n_bins
 
         # Add the Order by iterating over Labels and Bin indices
@@ -223,5 +227,3 @@ class Biopac(DataSource):
         schema = Schema({str: str})
 
         return schema.validate(raw)
-
-

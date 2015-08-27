@@ -53,6 +53,8 @@ def memoize(obj):
     return memoizer
 
 
+# TODO(janmtl): Schedule should extend pd.DataFrame
+
 class Schedule(object):
     """
     An object for scheduling files to be processed by data sources.
@@ -83,9 +85,15 @@ class Schedule(object):
         """Fetches the schedule for a given task and data source."""
         return self.raw[task_name][data_source_name]
 
-    def compile(self, data_path):
+    def compile(self, data_paths):
         """Search the data path for the files to add to the schedule."""
-        files_df = self.search(self.raw, data_path)
+        # TODO(janmtl): this should accept globs
+        # TODO(janmtl): should be able to pass a list of excluded subjects
+
+        if not isinstance(data_paths, list):
+            data_paths = list(data_paths)
+
+        files_df = self.search(self.raw, data_paths)
         self.sched_df = self._resolve(files_df)
         self.sched_df[['Subject', 'Task_Order']] = \
             self.sched_df[['Subject', 'Task_Order']].astype(np.int64)
@@ -97,27 +105,15 @@ class Schedule(object):
     def validate_subjects(self):
         """Iterate over subjects and make sure that they all have all the files
         they need."""
-        valid_subjects = list(np.unique(self.sched_df['Subject']))
-        invalid_subjects = []
+        cf = (self.sched_df.pivot_table(index='Subject',
+                                        columns=['Task_Name',
+                                                 'Data_Source_Name',
+                                                 'File'],
+                                        values='Path',
+                                        aggfunc=lambda x: len(x)) == 1)
 
-        grouped = self.sched_df.groupby('Subject')
-        # TODO(janmtl): I'm pretty sure if I pivot this I can just check the
-        # size of the df
-        for idx, subject_df in grouped:
-            for task_name, task in self.raw.iteritems():
-                for data_source_name, patterns in task.iteritems():
-                    for pattern_name, _ in patterns.iteritems():
-                        if subject_df[(subject_df['Task_Name'] == task_name)
-                                      & (subject_df['Data_Source_Name']
-                                         == data_source_name)
-                                      & (subject_df['File'] == pattern_name)
-                                      ].size == 0:
-                            if idx in valid_subjects:
-                                invalid_subjects.append(idx)
-                                valid_subjects.remove(idx)
-
-        self.valid_subjects = valid_subjects
-        self.invalid_subjects = invalid_subjects
+        self.valid_subjects = list(cf.index[cf.all(axis=1)])
+        self.invalid_subjects = list(cf.index[~cf.all(axis=1)])
 
     def drop_incomplete_subjects(self):
         """."""
@@ -135,6 +131,10 @@ class Schedule(object):
 
     def isolate_task(self, task_name):
         self.sched_df = self.sched_df[self.sched_df['Task_Name'] == task_name]
+
+    def isolate_data_source(self, data_source_name):
+        self.sched_df = self.sched_df[self.sched_df['Data_Source_Name']
+                                      == data_source_name]
 
     def get_file_paths(self, subject_id, task_name, data_source_name):
         """Return all a dictionary of all files for a given subject, task,
@@ -157,23 +157,24 @@ class Schedule(object):
         return files_dict
 
     @staticmethod
-    def search(raw, data_path):
-        """Search the data path for matching file patterns and return a pandas
+    def search(raw, data_paths):
+        """Search the data paths for matching file patterns and return a pandas
         DataFrame of the results."""
         files_dict = []
         for task_name, task in raw.iteritems():
             for data_source_name, patterns in task.iteritems():
                 for pattern_name, pattern in patterns.iteritems():
-                    for root, _, files in os.walk(data_path):
-                        for filepath in files:
-                            file_match = re.match(pattern, filepath)
-                            if file_match:
-                                file_dict = file_match.groupdict()
-                                file_dict['Task_Name'] = task_name
-                                file_dict['Data_Source_Name'] = data_source_name
-                                file_dict['File'] = pattern_name
-                                file_dict['Path'] = os.path.join(root, filepath)
-                                files_dict.append(file_dict)
+                    for data_path in data_paths:
+                        for root, _, files in os.walk(data_path):
+                            for filepath in files:
+                                file_match = re.match(pattern, filepath)
+                                if file_match:
+                                    fd = file_match.groupdict()
+                                    fd['Task_Name'] = task_name
+                                    fd['Data_Source_Name'] = data_source_name
+                                    fd['File'] = pattern_name
+                                    fd['Path'] = os.path.join(root, filepath)
+                                    files_dict.append(fd)
         files_df = pd.DataFrame(files_dict)
         files_df[['Subject', 'Task_Order']] = \
             files_df[['Subject', 'Task_Order']].astype(np.int64)

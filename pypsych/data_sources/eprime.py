@@ -12,6 +12,10 @@ from data_source import DataSource
 from schema import Schema
 
 
+def _idem(x, pos):
+    return x.values[0]
+
+
 class EPrime(DataSource):
     def __init__(self, config, schedule):
         """."""
@@ -19,7 +23,7 @@ class EPrime(DataSource):
         super(EPrime, self).__init__(config, schedule)
 
         channels = self.config['channels']
-        self.panels = {channel: {'VAL': (lambda x, pos: x)}
+        self.panels = {channel: {'VAL': _idem}
                        for channel in channels}
 
     def load(self, file_paths):
@@ -47,15 +51,15 @@ class EPrime(DataSource):
         self.data['samples'] = self.data['samples'][sel]
         self.data['samples']['pos'] = True
         self.data['labels'] = self.data['samples'][['ID', 'Condition']]
-        self.data['labels'].loc[:, 'Label'] = self.data['labels'].index.values
+        self.data['labels'].loc[:, 'Label'] = None
 
     def create_label_bins(self, labels):
         """Construct the dummy label_bins dataframe."""
         label_bins = labels
         label_bins.loc[:, 'Order'] = labels.index.values
         label_bins.loc[:, 'Bin_Order'] = labels.index.values
-        label_bins.loc[:, 'Start_Time'] = 0
-        label_bins.loc[:, 'End_Time'] = 0
+        label_bins.loc[:, 'Start_Time'] = labels.index.values
+        label_bins.loc[:, 'End_Time'] = labels.index.values + 1
         label_bins.loc[:, 'Bin_Index'] = 0
         return label_bins
 

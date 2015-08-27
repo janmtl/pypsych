@@ -11,6 +11,8 @@ labels,Biopac,tests/data/Mock2_1012_biopac_labels.mat,101,Mock2,2
 labels,Biopac,tests/data/Mock2_1022_biopac_labels.mat,102,Mock2,2
 samples,Biopac,tests/data/Mock2_1012_biopac_samples.txt,101,Mock2,2
 samples,Biopac,tests/data/Mock2_1022_biopac_samples.txt,102,Mock2,2
+labels,EPrime,tests/data/Mock2_1012_eprime.txt,101,Mock2,2
+labels,EPrime,tests/data/Mock2_1022_eprime.txt,102,Mock2,2
 labels,BeGaze,tests/data/1011_begaze_labels.txt,101,Mock1,1
 labels,BeGaze,tests/data/1012_begaze_labels.txt,101,Mock1,2
 labels,BeGaze,tests/data/1021_begaze_labels.txt,102,Mock1,1
@@ -23,3 +25,5 @@ labels,Biopac,tests/data/Mock1_1011_biopac_labels.mat,101,Mock1,1
 labels,Biopac,tests/data/Mock1_1021_biopac_labels.mat,102,Mock1,1
 samples,Biopac,tests/data/Mock1_1011_biopac_samples.txt,101,Mock1,1
 samples,Biopac,tests/data/Mock1_1021_biopac_samples.txt,102,Mock1,1
+labels,EPrime,tests/data/Mock2_1012_eprime.txt,101,Mock2,1
+labels,EPrime,tests/data/Mock2_1022_eprime.txt,102,Mock2,1

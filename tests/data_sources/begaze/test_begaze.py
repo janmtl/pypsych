@@ -41,6 +41,9 @@ def assert_labelsdfs_equality(df1, df2):
         df1.drop('Unnamed: 0', axis=0, inplace=True)
     if 'Unnamed: 0' in df2.columns:
         df2.sort('Unnamed: 0', axis=0, inplace=True)
+    print '\n'
+    print df1
+    print df2
     pd.util.testing.assert_frame_equal(df1, df2, check_names=True)
 
 
@@ -74,6 +77,7 @@ class BeGazeLoadingTestCases(unittest.TestCase):
         begaze = BeGaze(config=self.subconfig, schedule=self.subschedule)
         begaze.load(self.file_paths)
 
+
 class BeGazeMergeLabelsConfig(unittest.TestCase):
     """
     Tests that BeGaze correctly merges labels and label configurations.
@@ -106,7 +110,8 @@ class BeGazeMergeLabelsConfig(unittest.TestCase):
         valid_labels = pd.read_csv(valid_labels_path,
                                    delimiter="\t",
                                    index_col=0,
-                                   dtype={'Duration': np.float64,
+                                   dtype={'Bin_Order': np.int64,
+                                          'Duration': np.float64,
                                           'Condition': np.object,
                                           'Event_ID': np.object,
                                           'Event_Order': np.int64,

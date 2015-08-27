@@ -8,9 +8,9 @@ for compiling a schedule of files to process.
 Methods:
     compile: shortcut for validating the loaded configuration, then
       performing the search, and _resolve functions
-    
+
     load: load the schedule.yaml file into a dictionary
-    
+
     get_file_paths: return a dictionary of files for a given subject, task, and
       data source.
 
@@ -18,10 +18,10 @@ Methods:
 
     validate_schema: validate yaml contents against the schedule configuration
       schema.
-    
+
     validate_data_source_names: validates that the data source names contained
     in the configuration match a given list of possible data source names
-    
+
     validate_patterns: validates that the regex patterns return named fields
       matching a list of required named fields
 
@@ -107,18 +107,17 @@ class Schedule(object):
             for task_name, task in self.raw.iteritems():
                 for data_source_name, patterns in task.iteritems():
                     for pattern_name, _ in patterns.iteritems():
-                        if subject_df[
-                            (subject_df['Task_Name']==task_name)
-                            & (subject_df['Data_Source_Name']==data_source_name)
-                            & (subject_df['File']==pattern_name)
-                            ].size == 0:
+                        if subject_df[(subject_df['Task_Name'] == task_name)
+                                      & (subject_df['Data_Source_Name']
+                                         == data_source_name)
+                                      & (subject_df['File'] == pattern_name)
+                                      ].size == 0:
                             if idx in valid_subjects:
                                 invalid_subjects.append(idx)
                                 valid_subjects.remove(idx)
-        
 
         self.valid_subjects = valid_subjects
-        self.invalid_subjects = invalid_subjects        
+        self.invalid_subjects = invalid_subjects
 
     def drop_incomplete_subjects(self):
         """."""
@@ -126,16 +125,16 @@ class Schedule(object):
             self.sched_df['Subject'].isin(self.valid_subjects)]
 
     def remove_subject(self, subject_id):
-        self.sched_df = self.sched_df[self.sched_df['Subject']!=subject_id]
+        self.sched_df = self.sched_df[self.sched_df['Subject'] != subject_id]
         if subject_id in self.subjects:
             self.subjects.remove(subject_id)
 
     def isolate_subject(self, subject_id):
-        self.sched_df = self.sched_df[self.sched_df['Subject']==subject_id]
+        self.sched_df = self.sched_df[self.sched_df['Subject'] == subject_id]
         self.subjects = subject_id
 
     def isolate_task(self, task_name):
-        self.sched_df = self.sched_df[self.sched_df['Task_Name']==task_name]
+        self.sched_df = self.sched_df[self.sched_df['Task_Name'] == task_name]
 
     def get_file_paths(self, subject_id, task_name, data_source_name):
         """Return all a dictionary of all files for a given subject, task,
@@ -228,7 +227,7 @@ class Schedule(object):
         """
         for _, task in raw.iteritems():
             for data_source_name in task.keys():
-                if not data_source_name in data_source_names:
+                if data_source_name not in data_source_names:
                     raise Exception(
                         'Schedule could not validate data source ',
                         data_source_name
@@ -238,12 +237,12 @@ class Schedule(object):
     def validate_patterns(raw):
         """Validate that all file pattern regex expressions yield Task_Order
         and Subject fields."""
-        for _, task  in raw.iteritems():
+        for _, task in raw.iteritems():
             for _, data_source in task.iteritems():
                 for _, pattern in data_source.iteritems():
                     compiled_pattern = re.compile(pattern)
                     for group_name in compiled_pattern.groupindex.keys():
-                        if not group_name in ['Task_Order', 'Subject']:
+                        if group_name not in ['Task_Order', 'Subject']:
                             raise Exception(
                                 'Schedule could not validate pattern ',
                                 pattern

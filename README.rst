@@ -18,3 +18,6 @@ Features
 --------
 
 * TODO
+
+* Add generators for sched_df
+* Mock data generators should be called at test time not before.

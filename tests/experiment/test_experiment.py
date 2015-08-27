@@ -73,31 +73,5 @@ class ExperimentProcessingTestCases(unittest.TestCase):
         """Consume a schedule."""
         self.experiment.process()
 
-class ExperimentSavingTestCases(unittest.TestCase):
-    """
-    Asserts that experiment can save the results of a consumed schedule.
-    """
-
-    def setUp(self):
-        # Load a config and a schedule
-        self.config_path = resource_filename('tests.config', 'config.yaml')
-        self.schedule_path = resource_filename('tests.schedule',
-                                               'schedule.yaml')
-        self.data_path = 'tests/data'
-        self.output_path = 'tests/output'
-
-        self.experiment = Experiment(config_path=self.config_path,
-                                     schedule_path=self.schedule_path,
-                                     data_path=self.data_path)
-        self.experiment.load()
-        self.experiment.compile()
-        self.experiment.process()
-
-    def test_save_experiment(self):
-        """Save the outputs."""
-        # TODO(janmtl): should test all paths everywhere to be safe against
-        # dropped backslashes (i.e.: move to os.join())
-        self.experiment.save_outputs(self.output_path)
-
 if __name__ == '__main__':
     unittest.main()

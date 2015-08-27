@@ -107,9 +107,11 @@ def generate_mock_begaze_data(config_path, task_name, n_events, sched_path):
         'Event_Order': event_orders,
         'Duration': durations,
         'N_Bins': event_bins,
-        'Start_Time': time})
+        'Start_Time': time,
+        'Bin_Order': ''})
     merged_labels = merged_labels[(merged_labels['Label'] !=
                                    'garbage_label')]
+    merged_labels['Bin_Order'] = merged_labels.index.values()
 
     # Now on to the samples and binned files. We will iterate over the
     # event_types array and construct runs of data points that match the

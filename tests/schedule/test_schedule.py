@@ -19,6 +19,7 @@ pd.set_option('display.width', 1000)
 from pkg_resources import resource_filename
 from pypsych.schedule import Schedule
 
+
 def assert_filesdfs_equality(df1, df2):
     """
     Asserts whether two Pandas dataframes are exactly equal irregardless of
@@ -116,7 +117,7 @@ class ScheduleCompilationTestCases(unittest.TestCase):
         self.assertTrue(assert_filesdfs_equality(files_df, self.files_df))
 
     def test_compile_schedule(self):
-        """Returns all a task_order resolved file table after search."""
+        """Returns a task_order resolved file table after search."""
         self.schedule.compile(self.data_path)
         self.assertTrue(assert_filesdfs_equality(
             self.schedule.sched_df,
@@ -163,7 +164,7 @@ class ScheduleValidationTestCases(unittest.TestCase):
             ), 'r'))
 
         # Set the valid data source names
-        self.valid_names = ['Biopac', 'BeGaze']
+        self.valid_names = ['Biopac', 'BeGaze', 'EPrime']
 
         # Construct the test Schedule object and load in the configuration
         self.schedule = Schedule(path=self.good_schedule_path)

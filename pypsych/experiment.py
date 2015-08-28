@@ -59,7 +59,7 @@ class Experiment(object):
         Iterate over the (subject, task) pairs and process each data source.
         """
 
-        self.schedule.drop_incomplete_subjects()
+        self.drop_incomplete_subjects()
 
         grouped = self.schedule.sched_df.groupby(['Subject',
                                                   'Task_Name',

@@ -63,6 +63,10 @@ class DataSource(object):
 
         self.output = output
 
+    def validate_data(self):
+        """Check that each data file has at least one record."""
+        return {f: len(d) > 1 for f, d in self.data.iteritems()}
+
     @staticmethod
     def _validate_config(raw):
         """Placeholder method for validating configuration dicts."""

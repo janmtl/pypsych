@@ -5,6 +5,7 @@
 Includes the Experiment class.
 """
 import pandas as pd
+import numpy as np
 from config import Config
 from schedule import Schedule
 from data_sources.begaze import BeGaze
@@ -39,8 +40,6 @@ class Experiment(object):
         """
         self._load()
         self.schedule.compile(self.data_paths)
-        self.schedule.validate_subjects()
-        self.schedule.drop_incomplete_subjects()
 
         task_datas = self.schedule\
                          .sched_df[['Task_Name', 'Data_Source_Name']]\
@@ -53,10 +52,14 @@ class Experiment(object):
                 DATA_SOURCES[task_data['Data_Source_Name']](subconfig,
                                                             subschedule)
 
+        self.validate_files()
+
     def process(self):
         """
         Iterate over the (subject, task) pairs and process each data source.
         """
+
+        self.schedule.drop_incomplete_subjects()
 
         grouped = self.schedule.sched_df.groupby(['Subject',
                                                   'Task_Name',
@@ -69,6 +72,7 @@ class Experiment(object):
         with progress.Bar(label="Processing ", expected_size=tots) as pbar:
             pbar.show(prog)
             for idx, _ in grouped:
+                print idx
                 # Fetch the file paths from the schedule for this trial
                 file_paths = self.schedule.get_file_paths(*idx)
                 subject_id, task_name, data_source_name = idx
@@ -100,6 +104,71 @@ class Experiment(object):
 
                 prog = prog + 1
                 pbar.show(prog)
+
+    def validate_files(self):
+        """
+        Iterate over the (subject, task) pairs and validate each data source.
+        """
+
+        # First, run the normal validation on the Schedule
+        vf = self.schedule.validate_files()
+
+        grouped = self.schedule.sched_df.groupby(['Subject',
+                                                  'Task_Name',
+                                                  'Data_Source_Name'])
+
+        validation = {}
+
+        # Iterate over subjects, tasks, and data sources
+        for idx, _ in grouped:
+            # Fetch the file paths from the schedule for this trial
+            file_paths = self.schedule.get_file_paths(*idx)
+            subject_id, task_name, data_source_name = idx
+            ds_id = tuple([task_name, data_source_name])
+
+            # Load and process the data source in question
+            try:
+                self.data_sources[ds_id].load(file_paths)
+            except KeyError as e:
+                validation[idx] = {str(e)[1:-1]: False}
+            else:
+                validation[idx] = self.data_sources[ds_id].validate_data()
+
+            # TODO(janmtl): The above will not report a samples file that is
+            # empty when a labels file is missing
+
+        # Now we take the newly found validation informaiton (that pertains to
+        # corrupt, rather than missing files) and transform the schedule
+        # validation matrix
+        ef = [{'Subject': subject,
+               'Task_Name': task,
+               'File': file_type,
+               'Data_Source_Name': ds_name,
+               'Status': status}
+              for (subject, task, ds_name), sub in validation.iteritems()
+              for file_type, status in sub.iteritems()]
+        ef = pd.DataFrame.from_dict(ef)
+        ef = ef.pivot_table(index='Subject',
+                            columns=['Task_Name',
+                                     'Data_Source_Name',
+                                     'File'],
+                            values='Status',
+                            aggfunc=lambda x: x).replace(np.nan, True)
+        ef = ef.as_matrix()
+        zf = vf.as_matrix()
+        yf = np.copy(zf).astype(np.object)
+        yf[zf] = 'Found'
+        yf[~ef] = 'Corrupt'
+        yf[~zf] = 'Missing'
+        vf.loc[:, :] = yf
+        self.validation = vf
+
+    def drop_incomplete_subjects(self):
+        """."""
+        sel = (self.validation == 'Found').all(axis=1)
+        valid_subjects = list(self.validation.index[sel])
+        self.schedule.sched_df = self.schedule.sched_df[
+            self.schedule.sched_df['Subject'].isin(valid_subjects)]
 
     def pivot_outputs(self):
         """Pivot."""

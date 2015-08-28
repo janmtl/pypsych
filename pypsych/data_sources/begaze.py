@@ -5,26 +5,30 @@
 Includes the BeGaze data source class
 """
 import pandas as pd
-import numpy  as np
-from itertools import product
+import numpy as np
 from data_source import DataSource
 from schema import Schema, Or, Optional
+
 
 def _val(x, pos):
     return np.mean(x)
 
+
 def _sem(x, pos):
     return x.sem(axis=0)
+
 
 def _count(x, pos):
     return np.size(x)
 
+
 def _nans(x, pos):
     return np.size(pos) - np.sum(pos)
 
+
 class BeGaze(DataSource):
     def __init__(self, config, schedule):
-        
+
         # Call the parent class init
         super(BeGaze, self).__init__(config, schedule)
 
@@ -63,7 +67,7 @@ class BeGaze(DataSource):
         that will hold the label configuration information.
 
         Args:
-          labels (pandas Data Frame): result of the 
+          labels (pandas Data Frame): result of the
         """
         # TODO(janmtl): finish this docstring
         # Extract and rename relevant columns
@@ -79,7 +83,7 @@ class BeGaze(DataSource):
                                             'N_Bins',
                                             'Left_Trim',
                                             'Right_Trim'])
-        labels = pd.concat([labels, temp_labels], axis=1)      
+        labels = pd.concat([labels, temp_labels], axis=1)
         return labels
 
     @staticmethod
@@ -94,9 +98,9 @@ class BeGaze(DataSource):
         """
         # Extract and rename columns of interest. We are using the left pupil
         # by convention.
-        samples = samples.loc[:, ['Time', \
-                                   'L Pupil Diameter [mm]', \
-                                   'L Event Info']]
+        samples = samples.loc[:, ['Time',
+                                  'L Pupil Diameter [mm]',
+                                  'L Event Info']]
         samples.columns = ['Time', 'LDiameter', 'info']
 
         # Adjust the sample time to the epoch at the top of the file and convert
@@ -113,7 +117,7 @@ class BeGaze(DataSource):
         no_fixations = (samples['info'] != 'Fixation')
         samples.drop('info', axis=1, inplace=True)
         samples['pos'] = np.invert(no_fixations)
-        samples.loc[no_fixations,'LDiameter'] = np.nan
+        samples.loc[no_fixations, 'LDiameter'] = np.nan
         samples['LDiameter'] = samples['LDiameter'].interpolate(method='spline',
                                                                 order=3)
 
@@ -137,10 +141,10 @@ class BeGaze(DataSource):
         """
         # Iterate over label configurations
         for event_type, label_config in config.iteritems():
-            
+
             # Match given regex pattern on the entire labels data frame
             temp_labels = labels['Event'].str.extract(label_config['pattern'])
-            
+
             # If the regex only contains one field, the DataFrame.extract
             # operation above will only return a Series. Thus, change this
             # Series to a Data Frame
@@ -169,8 +173,7 @@ class BeGaze(DataSource):
         # dropped.
         labels.dropna(axis=0,
                       how='any',
-                      subset = ['Label', 'Condition', 'ID',
-                                'Duration', 'N_Bins'],
+                      subset=['Label', 'Condition', 'ID', 'Duration', 'N_Bins'],
                       inplace=True)
         # Drop the now superfluous 'Event' column
         labels.drop('Event', axis=1, inplace=True)
@@ -205,7 +208,7 @@ class BeGaze(DataSource):
         # In each group of duplicates, add a suffix to the ID
         for _, label in grouped:
             labels.loc[label.index, 'ID'] = \
-                label['ID'] + np.arange(1,label.shape[0]+1,1).astype(str)
+                label['ID'] + np.arange(1, label.shape[0]+1, 1).astype(str)
 
         return labels
 
@@ -219,7 +222,7 @@ class BeGaze(DataSource):
                                            'Condition', 'Bin_Order',
                                            'Start_Time', 'End_Time',
                                            'Bin_Index'],
-                                  index=np.arange(0,total_bins))
+                                  index=np.arange(0, total_bins))
         idx = 0
         for event_order, label in labels.iterrows():
             n_bins = label['N_Bins']
@@ -228,9 +231,9 @@ class BeGaze(DataSource):
                                      + label['Duration']
                                      - label['Right_Trim']),
                                num=n_bins+1)
-            label_info = np.tile(label.as_matrix(columns = ['ID',
-                                                            'Label',
-                                                            'Condition']),
+            label_info = np.tile(label.as_matrix(columns=['ID',
+                                                          'Label',
+                                                          'Condition']),
                                  (n_bins, 1))
 
             # Order
@@ -238,13 +241,13 @@ class BeGaze(DataSource):
             # ID, Label, Condition
             label_bins.iloc[idx:idx+n_bins, 1:4] = label_info
             # Bin_Order
-            label_bins.iloc[idx:idx+n_bins, 4] = idx+np.arange(0,n_bins,1)
+            label_bins.iloc[idx:idx+n_bins, 4] = idx+np.arange(0, n_bins, 1)
             # Start_Time
             label_bins.iloc[idx:idx+n_bins, 5] = cuts[0:n_bins]
             # End_Time
             label_bins.iloc[idx:idx+n_bins, 6] = cuts[1:n_bins+1]
             # Bin_Index
-            label_bins.iloc[idx:idx+n_bins, 7] = np.arange(0,n_bins,1)
+            label_bins.iloc[idx:idx+n_bins, 7] = np.arange(0, n_bins, 1)
 
             idx = idx + n_bins
 
@@ -295,5 +298,3 @@ class BeGaze(DataSource):
         schema = Schema({str: str})
 
         return schema.validate(raw)
-
-

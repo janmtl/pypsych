@@ -102,7 +102,7 @@ class Schedule(object):
     # TODO(janmtl): The function that checks the integrity of a subject's data
     # should also return which subjects are broken and why
 
-    def validate_subjects(self):
+    def validate_files(self):
         """Iterate over subjects and make sure that they all have all the files
         they need."""
         cf = (self.sched_df.pivot_table(index='Subject',
@@ -111,14 +111,7 @@ class Schedule(object):
                                                  'File'],
                                         values='Path',
                                         aggfunc=lambda x: len(x)) == 1)
-
-        self.valid_subjects = list(cf.index[cf.all(axis=1)])
-        self.invalid_subjects = list(cf.index[~cf.all(axis=1)])
-
-    def drop_incomplete_subjects(self):
-        """."""
-        self.sched_df = self.sched_df[
-            self.sched_df['Subject'].isin(self.valid_subjects)]
+        return cf
 
     def remove_subject(self, subject_id):
         self.sched_df = self.sched_df[self.sched_df['Subject'] != subject_id]

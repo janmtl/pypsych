@@ -106,8 +106,8 @@ class Schedule(object):
         """Iterate over subjects and make sure that they all have all the files
         they need."""
         cf = (self.sched_df.pivot_table(index='Subject',
-                                        columns=['Task_Name',
-                                                 'Data_Source_Name',
+                                        columns=['Data_Source_Name',
+                                                 'Task_Name',
                                                  'File'],
                                         values='Path',
                                         aggfunc=lambda x: len(x)) == 1)

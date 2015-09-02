@@ -7,13 +7,17 @@ Includes the Biopac data source class
 import pandas as pd
 import numpy as np
 from scipy.io import loadmat
-from scipy.signal import lfilter
+from scipy.interpolate import UnivariateSpline
 from data_source import DataSource
 from schema import Schema, Or, Optional
 
 
 def _val(x, pos):
     return np.mean(x)
+
+
+def _std(x, pos):
+    return x.std(axis=0)
 
 
 def _sem(x, pos):
@@ -33,7 +37,7 @@ class Biopac(DataSource):
         self.panels = {'bpm': {'VAL': _val,
                                'SEM': _sem},
                        'rr': {'VAL': _val,
-                              'VAR': _var},
+                              'STD': _std},
                        'twave': {'VAL': _val,
                                  'SEM': _sem}}
 
@@ -124,10 +128,14 @@ class Biopac(DataSource):
         """
         .
         """
-        samples = lfilter(np.ones(1000)/1000, 1, samples, axis=0)
-        samples = lfilter(np.ones(1000)/1000, 1, samples, axis=0)
-        samples = pd.DataFrame(samples, columns=['bpm', 'rr', 'twave'])
+        scale = 0.55
+
         samples.index = samples.index*100
+        for col_name, col in samples.iteritems():
+            x = col.index
+            y = col.values
+            spl = UnivariateSpline(x, y, k=5, s=scale*len(x))
+            samples[col_name] = spl(x)
         samples['pos'] = True
         return samples
 

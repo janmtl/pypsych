@@ -6,6 +6,8 @@ Includes the Experiment class.
 """
 import pandas as pd
 import numpy as np
+import yaml
+from pkg_resources import resource_filename
 from config import Config
 from schedule import Schedule
 from data_sources.begaze import BeGaze
@@ -20,20 +22,25 @@ class Experiment(object):
     """
     Main task runner for pypsych.
     """
-    def __init__(self, config_path, schedule_path, data_paths):
+    def __init__(self, config_path, schedule_path, data_paths,
+                 excluded_subjects=[]):
         self.config_path = config_path
         self.schedule_path = schedule_path
         self.data_paths = data_paths
         self.config = Config(self.config_path)
         self.schedule = Schedule(self.schedule_path)
         self.output = {}
+        self.excluded_subjects = excluded_subjects
+        self.invalid_subjects = []
+        self.valid_subjects = []
+        self.validation = pd.DataFrame()
 
         # Data sources will be preserved in memory across trials. This is to
         # ensure that the future Masker data source does not read hundreds of
         # bitmaps repeatedly.
         self.data_sources = {}
 
-    def compile(self):
+    def compile(self, validate=False):
         """
         Compile the schedule on the data_paths and spin-up the data sources
         for each task_name.
@@ -52,14 +59,22 @@ class Experiment(object):
                 DATA_SOURCES[task_data['Data_Source_Name']](subconfig,
                                                             subschedule)
 
-        self.validate_files()
+        self.remove_subject(self.excluded_subjects)
+
+        if validate:
+            self.validation, self.valid_subjects, self.invalid_subjects = \
+                self.validate_files()
+        else:
+            self.validation = pd.DataFrame()
+            self.valid_subjects = self.schedule.subjects
+            self.invalid_subjects = []
 
     def process(self):
         """
         Iterate over the (subject, task) pairs and process each data source.
         """
-
-        self.drop_incomplete_subjects()
+        if hasattr(self, 'validation'):
+            self.drop_incomplete_subjects()
 
         grouped = self.schedule.sched_df.groupby(['Subject',
                                                   'Task_Name',
@@ -149,8 +164,8 @@ class Experiment(object):
               for file_type, status in sub.iteritems()]
         ef = pd.DataFrame.from_dict(ef)
         ef = ef.pivot_table(index='Subject',
-                            columns=['Task_Name',
-                                     'Data_Source_Name',
+                            columns=['Data_Source_Name',
+                                     'Task_Name',
                                      'File'],
                             values='Status',
                             aggfunc=lambda x: x).replace(np.nan, True)
@@ -161,14 +176,18 @@ class Experiment(object):
         yf[~ef] = 'Corrupt'
         yf[~zf] = 'Missing'
         vf.loc[:, :] = yf
-        self.validation = vf
+
+        sel = (vf == 'Found').all(axis=1)
+        nsel = (vf != 'Found').any(axis=1)
+        valid_subjects = list(vf.index[sel])
+        invalid_subjects = list(vf.index[nsel])
+
+        return vf, valid_subjects, invalid_subjects
 
     def drop_incomplete_subjects(self):
         """."""
-        sel = (self.validation == 'Found').all(axis=1)
-        valid_subjects = list(self.validation.index[sel])
         self.schedule.sched_df = self.schedule.sched_df[
-            self.schedule.sched_df['Subject'].isin(valid_subjects)]
+            self.schedule.sched_df['Subject'].isin(self.valid_subjects)]
 
     def pivot_outputs(self):
         """Pivot."""
@@ -202,6 +221,46 @@ class Experiment(object):
                     pivot_out[task_name][channel][stat_name] = stat_piv
 
         return pivot_out
+
+    def report_to_html(self, path):
+        """Create an HTML report of the experiment at `path`."""
+
+        # Experiment parameters stated in the "Overview" section
+        html = {'CONFIG_PATH': self.config_path,
+                'SCHEDULE_PATH': self.schedule_path,
+                'DATA_PATHS': str(self.data_paths),
+                'VALID_SUBJECTS': str(self.valid_subjects),
+                'INVALID_SUBJECTS': str(self.invalid_subjects),
+                'EXCLUDED_SUBJECTS': str(self.excluded_subjects)}
+
+        # The configuration and schedul yaml contents
+        html['CONFIG'] = yaml.dump(self.config.raw)
+        html['SCHEDULE'] = yaml.dump(self.schedule.raw)
+
+        # The validation table
+        validation = self.validation.copy(deep=True)
+        validation_html = validation.to_html()
+        validation_html = validation_html.replace('<td>Found</td>',
+                                                  '<td bgcolor="green"></td>')
+        validation_html = validation_html.replace('<td>Corrupt</td>',
+                                                  '<td bgcolor="yellow"></td>')
+        validation_html = validation_html.replace('<td>Missing</td>',
+                                                  '<td bgcolor="red"></td>')
+
+        html['VALIDATION'] = validation_html
+
+        # The schedule dataframe
+        html['SCHED_DF'] = self.schedule.sched_df.to_html()
+
+        # Read in the template
+        with open(resource_filename('report', 'report.tpl'), 'r') as f:
+            tpl = f.read()
+
+        for key, injection in html.iteritems():
+            tpl = tpl.replace('[[' + key + ']]', injection)
+
+        with open(path, 'w') as report:
+            report.write(tpl)
 
     def _load(self):
         """Create and load the configuration and schedule."""

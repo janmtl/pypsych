@@ -58,7 +58,7 @@ class DataSource(object):
                     pos = raw.loc[selector, 'pos']
                     stats.append(stat_fun(samples, pos))
 
-                new_panel[stat_name] = stats
+                new_panel['stat'] = stats
                 output[channel][stat_name] = new_panel.sort('Bin_Order')
 
         self.output = output

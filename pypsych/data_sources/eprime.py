@@ -8,7 +8,8 @@
 import pandas as pd
 import io
 from data_source import DataSource
-from schema import Schema
+from schema import Schema, Or
+from utils import merge_and_rename_columns
 
 
 def _idem(x, pos):
@@ -21,7 +22,9 @@ class EPrime(DataSource):
         # Call the parent class init
         super(EPrime, self).__init__(config, schedule)
 
-        channels = self.config['channels']
+        channels = self.config.keys()
+        channels.remove('ID')
+        channels.remove('Condition')
         self.panels = {channel: {'VAL': _idem}
                        for channel in channels}
 
@@ -31,7 +34,6 @@ class EPrime(DataSource):
             raw = kv_file.read()
             raw = raw.replace('\t', '')
             raw = raw.replace('*** LogFrame End ***', '')
-            raw = raw.replace('Level: 2', '')
             arr = raw.split('*** LogFrame Start ***')
             frames = []
             for frame in arr:
@@ -45,11 +47,11 @@ class EPrime(DataSource):
 
     def merge_data(self):
         """Clean the EPrime file data."""
+        # Assemble samples
         self.data['samples'] = self._clean_samples(self.data['samples'])
-        sel = ['ID', 'Condition'] + self.config['channels']
-        self.data['samples'] = self.data['samples'][sel]
-        self.data['samples']['pos'] = True
-        self.data['labels'] = self.data['samples'][['ID', 'Condition']]
+        self.data['samples'].loc[:, 'pos'] = True
+        # Assemble labels
+        self.data['labels'] = self.data['samples'].loc[:, ['ID', 'Condition']]
         self.data['labels'].loc[:, 'Label'] = None
 
     def create_label_bins(self, labels):
@@ -62,10 +64,21 @@ class EPrime(DataSource):
         label_bins.loc[:, 'Bin_Index'] = 0
         return label_bins
 
-    @staticmethod
-    def _clean_samples(samples):
-        """."""
-        return samples.rename(columns={'Img': 'ID'})
+    def _clean_samples(self, samples):
+        """
+        Create the columns from the keys and names that were passed into the
+        configuration.
+        """
+        for key, names in self.config.iteritems():
+            samples = merge_and_rename_columns(samples, key, names)
+
+        # Pick out only the columns of interest
+        samples = samples.loc[:, self.config.keys()]
+
+        # Pick out only the rows that are not all nan
+        samples.dropna(how='all', axis=0, inplace=True)
+
+        return samples
 
     @staticmethod
     def _validate_config(raw):
@@ -74,9 +87,13 @@ class EPrime(DataSource):
 
         Args:
           raw (dict): must match the following schema
-            {channels: [column_names]}
+            {'ID': key name or list of keys,
+             'Condition': key name or list of keys,
+             'Channels': list of keys}}
         """
-        schema = Schema({'channels': [str]})
+        schema = Schema({'ID': Or([str], str),
+                         'Condition': Or([str], str),
+                         str: Or([str], str)})
         return schema.validate(raw)
 
     @staticmethod

@@ -7,13 +7,15 @@ Includes the Experiment class.
 import pandas as pd
 import numpy as np
 import yaml
+import pickle
 from pkg_resources import resource_filename
 from config import Config
 from schedule import Schedule
 from data_sources.begaze import BeGaze
 from data_sources.biopac import Biopac
 from data_sources.eprime import EPrime
-from clint.textui import progress
+
+pd.set_option('display.max_colwidth', 1000)
 
 DATA_SOURCES = {'BeGaze': BeGaze, 'Biopac': Biopac, 'EPrime': EPrime}
 
@@ -22,15 +24,20 @@ class Experiment(object):
     """
     Main task runner for pypsych.
     """
-    def __init__(self, config_path, schedule_path, data_paths,
-                 excluded_subjects=[]):
+    def __init__(self, config_path):
         self.config_path = config_path
-        self.schedule_path = schedule_path
-        self.data_paths = data_paths
-        self.config = Config(self.config_path)
-        self.schedule = Schedule(self.schedule_path)
+        raw = yaml.load_all(open(config_path, 'r'))
+        global_config, raw_sched, raw_config = [i for i in raw]
+
+        self.data_paths = global_config['data_paths']
+        self.pickle_path = global_config['pickle_path']
+        self.excluded_subjects = global_config['excluded_subjects']
+
+        self.config = Config(raw_config)
+        self.schedule = Schedule(raw_sched)
+
         self.output = {}
-        self.excluded_subjects = excluded_subjects
+
         self.invalid_subjects = []
         self.valid_subjects = []
         self.validation = pd.DataFrame()
@@ -40,12 +47,14 @@ class Experiment(object):
         # bitmaps repeatedly.
         self.data_sources = {}
 
+    def save(self):
+        pickle.dump(self, open(self.pickle_path, 'wb'))
+
     def compile(self, validate=False):
         """
         Compile the schedule on the data_paths and spin-up the data sources
         for each task_name.
         """
-        self._load()
         self.schedule.compile(self.data_paths)
 
         task_datas = self.schedule\
@@ -74,51 +83,46 @@ class Experiment(object):
         Iterate over the (subject, task) pairs and process each data source.
         """
         if hasattr(self, 'validation'):
-            self.drop_incomplete_subjects()
+            self.schedule.sched_df = self.schedule.sched_df[
+                self.schedule.sched_df['Subject'].isin(self.valid_subjects)]
 
         grouped = self.schedule.sched_df.groupby(['Subject',
                                                   'Task_Name',
                                                   'Data_Source_Name'])
-        tots = len(grouped)
-        prog = 0
+
         self.output = {task_name: {} for task_name in self.config.task_names}
 
         # Iterate over subjects, tasks, and data sources
-        with progress.Bar(label="Processing ", expected_size=tots) as pbar:
-            pbar.show(prog)
-            for idx, _ in grouped:
-                print idx
-                # Fetch the file paths from the schedule for this trial
-                file_paths = self.schedule.get_file_paths(*idx)
-                subject_id, task_name, data_source_name = idx
-                ds_id = tuple([task_name, data_source_name])
+        for idx, _ in grouped:
+            print idx
+            # Fetch the file paths from the schedule for this trial
+            file_paths = self.schedule.get_file_paths(*idx)
+            subject_id, task_name, data_source_name = idx
+            ds_id = tuple([task_name, data_source_name])
 
-                # Load and process the data source in question
-                self.data_sources[ds_id].load(file_paths)
-                self.data_sources[ds_id].process()
+            # Load and process the data source in question
+            self.data_sources[ds_id].load(file_paths)
+            self.data_sources[ds_id].process()
 
-                # Iterate over the outputs and append them to existing output
-                # data frames if possible
-                ds_out = self.data_sources[ds_id].output
-                panels = self.data_sources[ds_id].panels
+            # Iterate over the outputs and append them to existing output
+            # data frames if possible
+            ds_out = self.data_sources[ds_id].output
+            panels = self.data_sources[ds_id].panels
 
-                for channel, statistics in panels.iteritems():
-                    # Insert a column for the subject id since the data
-                    # sources are ignorant of this
-                    ds_out[channel].loc[:, :, 'Subject'] = subject_id
+            for channel, statistics in panels.iteritems():
+                # Insert a column for the subject id since the data
+                # sources are ignorant of this
+                ds_out[channel].loc[:, :, 'Subject'] = subject_id
 
-                    # If the channel already exists, append to it, otherwise
-                    # save it
-                    if channel in self.output[task_name].keys():
-                        self.output[task_name][channel] = pd.concat(
-                            [self.output[task_name][channel], ds_out[channel]],
-                            ignore_index=True,
-                            axis=1)
-                    else:
-                        self.output[task_name][channel] = ds_out[channel]
-
-                prog = prog + 1
-                pbar.show(prog)
+                # If the channel already exists, append to it, otherwise
+                # save it
+                if channel in self.output[task_name].keys():
+                    self.output[task_name][channel] = pd.concat(
+                        [self.output[task_name][channel], ds_out[channel]],
+                        ignore_index=True,
+                        axis=1)
+                else:
+                    self.output[task_name][channel] = ds_out[channel]
 
     def validate_files(self):
         """
@@ -184,11 +188,6 @@ class Experiment(object):
 
         return vf, valid_subjects, invalid_subjects
 
-    def drop_incomplete_subjects(self):
-        """."""
-        self.schedule.sched_df = self.schedule.sched_df[
-            self.schedule.sched_df['Subject'].isin(self.valid_subjects)]
-
     def pivot_outputs(self):
         """Pivot."""
         # TODO(janmtl): improve this docstring
@@ -225,10 +224,17 @@ class Experiment(object):
     def report_to_html(self, path):
         """Create an HTML report of the experiment at `path`."""
 
+
+
         # Experiment parameters stated in the "Overview" section
+        if type(self.data_paths) is list:
+            data_paths = '<br/>'.join(self.data_paths)
+        else:
+            data_paths = self.data_paths
+
         html = {'CONFIG_PATH': self.config_path,
-                'SCHEDULE_PATH': self.schedule_path,
-                'DATA_PATHS': str(self.data_paths),
+                'PICKLE_PATH': self.pickle_path,
+                'DATA_PATHS': data_paths,
                 'VALID_SUBJECTS': str(self.valid_subjects),
                 'INVALID_SUBJECTS': str(self.invalid_subjects),
                 'EXCLUDED_SUBJECTS': str(self.excluded_subjects)}
@@ -239,18 +245,37 @@ class Experiment(object):
 
         # The validation table
         validation = self.validation.copy(deep=True)
+        validation = validation.loc[self.invalid_subjects, :]
         validation_html = validation.to_html()
         validation_html = validation_html.replace('<td>Found</td>',
-                                                  '<td bgcolor="green"></td>')
+                                                  '<td class="found"></td>')
         validation_html = validation_html.replace('<td>Corrupt</td>',
-                                                  '<td bgcolor="yellow"></td>')
+                                                  '<td class="corrupt"></td>')
         validation_html = validation_html.replace('<td>Missing</td>',
-                                                  '<td bgcolor="red"></td>')
+                                                  '<td class="missing"></td>')
+        validation_html = validation_html.replace(
+            '<table border="1" class="dataframe">',
+            '<table class="table table-bordered">')
 
         html['VALIDATION'] = validation_html
 
         # The schedule dataframe
-        html['SCHED_DF'] = self.schedule.sched_df.to_html()
+        sched_df = self.schedule.sched_df.copy(deep=True)
+        sched_df = sched_df.sort(['Subject', 'Data_Source_Name', 'Task_Name',
+                                  'File'])
+        sched_df = sched_df.set_index(['Subject', 'Data_Source_Name',
+                                      'Task_Name', 'File'])
+        sched_df = sched_df.to_html()
+        sched_df = sched_df.replace('<table border="1" class="dataframe">',
+                                    '<table class="table table-bordered">')
+        html['SCHED_DF'] = sched_df
+
+        # Pull in the bootstrap CSS for this document
+        with open(resource_filename('report', 'bootstrap.min.css'), 'r') as f:
+            html['BOOTSTRAP_CSS'] = f.read()
+        with open(resource_filename('report',
+                                    'bootstrap-theme.min.css'), 'r') as f:
+            html['BOOTSTRAP_THEME_CSS'] = f.read()
 
         # Read in the template
         with open(resource_filename('report', 'report.tpl'), 'r') as f:
@@ -261,11 +286,6 @@ class Experiment(object):
 
         with open(path, 'w') as report:
             report.write(tpl)
-
-    def _load(self):
-        """Create and load the configuration and schedule."""
-        self.config.load()
-        self.schedule.load()
 
     # Useful function for recursing down a dictionary of DataFrames
     def save_output(self, output, output_path):

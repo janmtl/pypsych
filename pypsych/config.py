@@ -11,7 +11,6 @@ Schema (YAML):
   }
 """
 from schema import Schema
-import yaml
 import functools
 
 
@@ -46,16 +45,8 @@ class Config(object):
       validate_data_source_names Check yaml against valid data source names.
     """
 
-    def __init__(self, path):
-        self.path = path
-        self.raw = None
-        self.task_names = []
-        self.data_source_names = []
-
-    def load(self):
-        """Load in the raw schedule configuration and load the task and
-        data source names."""
-        self.raw = self.validate_schema(yaml.load(open(self.path, 'r')))
+    def __init__(self, raw):
+        self.raw = self.validate_schema(raw)
         self.task_names = [task_name for task_name in self.raw.keys()]
         self.data_source_names = []
         for _, task, in self.raw.iteritems():

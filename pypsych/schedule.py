@@ -33,7 +33,6 @@ Configuration schema (YAML):
   }
 """
 from schema import Schema
-import yaml
 import os
 import re
 import pandas as pd
@@ -68,17 +67,12 @@ class Schedule(object):
       sched_df (pands.DataFrame): a Pandas DataFrame listing all files found
     """
 
-    def __init__(self, path):
-        self.path = path
-        self.raw = None
+    def __init__(self, raw):
+        self.raw = self.validate_schema(raw)
         self.sched_df = None
         self.subjects = []
         self.valid_subjects = []
         self.invalid_subjects = []
-
-    def load(self):
-        """Load in the raw schedule configuration."""
-        self.raw = self.validate_schema(yaml.load(open(self.path, 'r')))
 
     @memoize
     def get_subschedule(self, task_name, data_source_name):

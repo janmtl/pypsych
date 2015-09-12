@@ -1,7 +1,6 @@
 language: python
 python:
   - 2.7
-  - 3.3
 notifications:
   email: false
 
@@ -24,8 +23,9 @@ install:
 
 # Run test
 script:
-  - nosetests --with-cov --cov pypsych --cov-config .coveragerc --logging-level=INFO
+  # - nosetests --with-cov --cov pypsych --cov-config .coveragerc --logging-level=INFO
+  - nosetests pypsych --logging-level=INFO
 
 # Calculate coverage
-after_success:
-  - coveralls --config_file .coveragerc
+# after_success:
+#   - coveralls --config_file .coveragerc

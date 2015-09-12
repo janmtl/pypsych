@@ -1,4 +1,4 @@
-wheel==0.23.0
+wheel>=0.23.0
 pyyaml>=3.11
 schema>=0.3.1
 numpy>=1.9.2

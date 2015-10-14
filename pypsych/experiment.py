@@ -14,10 +14,14 @@ from schedule import Schedule
 from data_sources.begaze import BeGaze
 from data_sources.biopac import Biopac
 from data_sources.eprime import EPrime
+from data_sources.hrvstitcher import HRVStitcher
 
 pd.set_option('display.max_colwidth', 1000)
 
-DATA_SOURCES = {'BeGaze': BeGaze, 'Biopac': Biopac, 'EPrime': EPrime}
+DATA_SOURCES = {'BeGaze': BeGaze,
+                'Biopac': Biopac,
+                'EPrime': EPrime,
+                'HRVStitcher': HRVStitcher}
 
 
 class Experiment(object):
@@ -47,8 +51,10 @@ class Experiment(object):
         # bitmaps repeatedly.
         self.data_sources = {}
 
-    def save(self):
-        pickle.dump(self, open(self.pickle_path, 'wb'))
+    def save(self, path=None):
+        if path is None:
+            path = self.pickle_path
+        pickle.dump(self, open(path, 'wb'))
 
     def compile(self, validate=False):
         """
@@ -310,15 +316,16 @@ class Experiment(object):
         else:
             self.schedule.remove_subject(subject_ids)
 
-    def isolate_subject(self, subject_id):
+    def isolate_subjects(self, subject_ids):
+        # TODO(janmtl): check for isinstance(list) on subject_ids
         """Removes all subjects except given subject id."""
-        self.schedule.isolate_subject(subject_id)
+        self.schedule.isolate_subjects(subject_ids)
 
-    def isolate_task(self, task_name):
+    def isolate_tasks(self, task_names):
         """Removes all tasks except given task name."""
-        self.schedule.isolate_task(task_name)
-        self.config.isolate_task(task_name)
+        self.schedule.isolate_tasks(task_names)
+        self.config.isolate_tasks(task_names)
 
-    def isolate_data_source(self, data_source_name):
+    def isolate_data_sources(self, data_source_names):
         """Removes all data sources except given data source name."""
-        self.schedule.isolate_data_source(data_source_name)
+        self.schedule.isolate_data_sources(data_source_names)

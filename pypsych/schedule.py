@@ -112,16 +112,18 @@ class Schedule(object):
         if subject_id in self.subjects:
             self.subjects.remove(subject_id)
 
-    def isolate_subject(self, subject_id):
-        self.sched_df = self.sched_df[self.sched_df['Subject'] == subject_id]
-        self.subjects = subject_id
+    def isolate_subjects(self, subject_ids):
+        self.sched_df = self.sched_df[self.sched_df['Subject']
+                                      .isin(subject_ids)]
+        self.subjects = subject_ids
 
-    def isolate_task(self, task_name):
-        self.sched_df = self.sched_df[self.sched_df['Task_Name'] == task_name]
+    def isolate_tasks(self, task_names):
+        self.sched_df = self.sched_df[self.sched_df['Task_Name']
+                                      .isin(task_names)]
 
-    def isolate_data_source(self, data_source_name):
+    def isolate_data_sources(self, data_source_names):
         self.sched_df = self.sched_df[self.sched_df['Data_Source_Name']
-                                      == data_source_name]
+                                      .isin(data_source_names)]
 
     def get_file_paths(self, subject_id, task_name, data_source_name):
         """Return all a dictionary of all files for a given subject, task,

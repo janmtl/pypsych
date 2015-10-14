@@ -54,10 +54,10 @@ class Config(object):
                 if data_source_name not in self.data_source_names:
                     self.data_source_names.append(data_source_name)
 
-    def isolate_task(self, task_name):
+    def isolate_tasks(self, task_names):
         """."""
         # TODO(janmtl): fix this docstring.
-        self.task_names = [task_name]
+        self.task_names = task_names
 
     @memoize
     def get_subconfig(self, task_name, data_source_name):

@@ -33,7 +33,7 @@ class DataSource(object):
         self.bin_data()
 
     def bin_data(self):
-        """Makes a dict of dicts of pd.DataFrames at self.output."""
+        """Makes a dict of dicts of pd.Panels at self.output."""
         label_bins = self.create_label_bins(self.data['labels'])
         major_axis = label_bins.index.values
         minor_axis = label_bins.drop(['Start_Time', 'End_Time'], axis=1).columns

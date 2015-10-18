@@ -1,107 +1,136 @@
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
+
+"""
+Includes the BeGazeROI data source class
+"""
 import pandas as pd
-import numpy  as np
-from scipy import ndimage, misc
-import os, re
-from clint.textui import progress
-import logging
+import numpy as np
+from begaze import BeGaze
+from scipy import ndimage
+import os
+import re
 
 
-        # self.masks = pd.DataFrame(columns = ['Event_ID', 'Coder', 'Area', 'Mask', 'Path'])
-        # # check if ROI is available
-        # if 'ROI' in self.config.keys():
-        #     self.output_columns.append('roi')
-        #     for coder_idx, coder_config in enumerate(self.config['ROI']):
-        #         cache_path = os.path.join(coder_config['path'], str(coder_idx)+'_cache.txt')
-        #         if os.path.isfile(cache_path):
-        #             self.masks = pd.concat([self.masks, self.loadMasks(cache_path)])
-        #         else:
-        #             self.masks = pd.concat([self.masks, self.createMasks(coder_idx, coder_config, cache_path)])
-        #     self.masks.index = pd.MultiIndex.from_tuples(zip(self.masks['Event_ID'], self.masks['Coder']))
+class BeGazeROI(BeGaze):
+    def __init__(self, config, schedule):
 
+        # Call the parent class init
+        super(BeGazeROI, self).__init__(config['Labels'], schedule)
 
-def encodeMask(lst):
-    return ''.join(['1' if x else '0' for x in lst])
+        # Position channel statistics
+        self.panels = {'XY': {'CODEDRATE': self._coded_rate,
+                              'ONMASKRATE': self._onmask_rate}}
 
-class Masker:
-  def __init__(self, dirs, colors, file_pattern):
-    masks = []
-    for idx, path in enumerate(dirs):
-      ff = os.listdir(path)
-      with progress.Bar(label="Coder "+str(idx), expected_size=len(ff)) as bar:
-        for f_idx, f in enumerate(ff):
-          m = re.match(file_pattern, f)
-          if m:
-            d = m.groupdict()
-            d['Path'] = os.path.join(path, f)
-            d['Coder'] = idx
-            img = ndimage.imread(d['Path'])
-            img_vec = np.reshape(img, (img.shape[0]*img.shape[1], img.shape[2]))
-            mask_vec = np.all((img_vec == colors[idx]), axis=1)
-            d['Mask'] = mask_vec
-            d['Area'] = mask_vec.sum()
-            masks.append(d)
-          bar.show(f_idx)
+        self.screen_size = config['ScreenSize']
+        self.mask_size = config['MaskSize']
+        self.mask_position = config['MaskPosition']
+        self.masks = self._create_masks(config['Coders'])
 
-    self.masks = pd.DataFrame(masks)
-    self.masks.sort(['Event_ID', 'Coder'], inplace = True)
-    self.masks[['Event_ID', 'Coder']] = self.masks[['Event_ID', 'Coder']].astype(float)
-    self.masks.set_index(['Event_ID', 'Coder'], inplace = True)
-    self.coders = self.masks.index.levels[1]
+    def _coded_rate(self, xy, pos, label_bin):
+        # Fetch the masks for this ID
+        sel = (self.masks['ID'] == label_bin['ID'])
+        coded_rates = []
+        for _, mask in self.masks.loc[sel, :].iterrows():
+            x = np.remainder(xy, self.screen_size[0]) \
+                - self.mask_position[0]
+            y = np.floor(np.divide(xy, self.screen_size[0])) \
+                - self.mask_position[1]
+            sel_onmask = (x > 0) & (x < self.mask_size[0]) & \
+                         (y > 0) & (y < self.mask_size[1])
+            mxy = (x + self.mask_size[0] * y)[sel_onmask]
+            hits = 0.0
+            for p in mxy:
+                if mask['Mask'][p]:
+                    hits = hits + 1.0
+            coded_rate = hits / float(mask['Area'] * (np.sum(pos)+1))
+            coded_rates.append(coded_rate)
 
-  # WRITE A BROADCASTABLE FUNCTION FOR THIS
-  def get_roi(self, samples):
-    # roi = samples[['Time', 'L POR X [px]', 'L POR Y [px]', 'R POR X [px]', 'R POR Y [px]', 'Event_ID']]
-    # roi.loc[:,'Coder 0'] = np.nan
-    # roi[self.coders] = np.nan
-    for event_id, coder_id in self.masks.index.values:
-      this_mask = self.masks.xs((event_id, coder_id), level=['Event_ID', 'Coder'])['Mask'].values[0]
-      coords_x = samples[samples['Event_ID']==event_id]['L POR X [px]'].values
-      coords_y = samples[samples['Event_ID']==event_id]['L POR Y [px]'].values
-      coords = np.floor(coords_y)*768+np.floor(coords_x)
-      coords = np.minimum(coords, 1024*768-1).astype(int)
-      roi[roi['Event_ID']==event_id, 'Coder '+str(coder_id)] = this_mask[coords]
-    roi.drop(['L POR X [px]', 'L POR Y [px]', 'R POR X [px]', 'R POR Y [px]', 'Event_ID'], axis=1, inplace=True)
-    return roi
+        # Use the mean rate from the two coders
+        rate = np.mean(coded_rates)
+        return rate
 
+    def _onmask_rate(self, xy, pos, label_bin):
+        sel = (self.masks['ID'] == label_bin['ID'])
+        onmask_rates = []
+        for _, mask in self.masks.loc[sel, :].iterrows():
+            x = np.remainder(xy, self.screen_size[0]) \
+                - self.mask_position[0]
+            y = np.floor(np.divide(xy, self.screen_size[0])) \
+                - self.mask_position[1]
+            sel_onmask = (x > 0) & (x < self.mask_size[0]) & \
+                         (y > 0) & (y < self.mask_size[1])
+            onmask_rates.append(np.mean(sel_onmask))
 
-    def apply_masks(self, pos, event_id):
-        coords = np.floor(pos['posy'])*768+np.floor(pos['posx'])
-        coords = np.minimum(coords, 1024*768-1)
-        nan_count = np.count_nonzero(np.isnan(pos['posx']) & np.isnan(pos['posy']))
-        coords = np.nan_to_num(coords).astype(int)
-        coders = self.masks.index.levels[1]
-        hit_stats = 0
-        for coder_idx in coders:
-            hits = coords.apply(lambda coord: self.masks.loc[np.float_(event_id), coder_idx]['Mask'][coord]).astype(int)
-            hit_count = np.sum(hits)/self.masks.loc[np.float_(event_id), coder_idx]['Area']
-            hit_stats = hit_stats + hit_count/len(coders)
-        return pd.Series({'roi': hit_stats})
+        # Use the mean rate from the two coders
+        rate = np.mean(onmask_rates)
+        return rate
 
-  @staticmethod
-  def createMasks(coder_idx, coder_config, save_path):
-    masks = []
-    ff = os.listdir(coder_config['path'])
-    for f_idx, f in enumerate(ff):
-      m = re.match(coder_config['files'], f)
-      if m:
-        d = m.groupdict()
-        d['Path'] = os.path.join(coder_config['path'], f)
-        d['Coder'] = coder_idx
-        img = ndimage.imread(d['Path'])
-        img_vec = np.reshape(img, (img.shape[0]*img.shape[1], img.shape[2]))
-        mask_vec = np.all((img_vec == coder_config['color']), axis=1)
-        d['Mask'] = encodeMask(mask_vec)
-        d['Area'] = mask_vec.sum()
-        masks.append(d)
+    def _create_masks(self, config):
+        mw = self.mask_size[0]
+        mh = self.mask_size[1]
+        ml = mw * mh
+        masks = []
+        for coder_name, coder_config in config.iteritems():
+            filenames = os.listdir(coder_config['path'])
+            for filename in filenames:
+                m = re.match(coder_config['pattern'], filename)
+                if m:
+                    d = m.groupdict()
+                    path = os.path.join(coder_config['path'], filename)
+                    d['Coder'] = coder_name
+                    img = ndimage.imread(path)
+                    img = np.transpose(img, (1, 0, 2))
+                    img_vec = np.reshape(img, (ml, 3))
+                    mask_vec = np.all((img_vec == coder_config['color']),
+                                      axis=1)
+                    d['Mask'] = mask_vec
+                    d['Area'] = mask_vec.sum()
+                    masks.append(d)
 
-    masks = pd.DataFrame(masks)
-    masks.sort(['Event_ID', 'Coder'], inplace = True)
-    masks[['Event_ID', 'Coder']] = masks[['Event_ID', 'Coder']].astype(float)
-    masks.to_csv(save_path, sep="\t")
-    return masks    
+        Masks = pd.DataFrame(masks)
+        return Masks
 
-  @staticmethod
-  def loadMasks(cache_path):
-    masks = pd.read_csv(cache_path, delimiter="\t")
-    return masks
+    def _clean_samples(self, samples):
+        """
+        Turn any non-Fixation data points into NaN values and extract and
+        relabel the columns.
+
+        Args:
+          samples (pandas Data Frame): data frame resulting from loading the
+            BeGaze samples file.
+        """
+        # Extract and rename columns of interest. We are using the left pupil
+        # by convention.
+        samples = samples.loc[:, ['Time',
+                                  'L POR X [px]',
+                                  'L POR Y [px]',
+                                  'L Event Info']]
+        samples.columns = ['Time', 'X', 'Y', 'info']
+
+        # Adjust the sample time to the epoch at the top of the file and convert
+        # to milliseconds.
+        samples[['Time']] = samples[['Time']] - samples.loc[0, 'Time']
+        samples[['Time']] = samples[['Time']]/1000
+
+        # Change the data frame index to the Time column for faster indexing
+        # later.
+        samples.set_index('Time', drop=True, inplace=True)
+
+        # Replace any non-fixation data points with NaN values and drop the
+        # 'info' axis which identifies such points.
+        no_fixations = (samples['info'] != 'Fixation')
+        samples.drop('info', axis=1, inplace=True)
+        samples['pos'] = np.invert(no_fixations)
+        samples.loc[no_fixations, 'X'] = np.nan
+        samples.loc[no_fixations, 'Y'] = np.nan
+        # samples.loc[:, 'X'] = samples.loc[:, 'X'].interpolate(method='spline',
+        #                                                       order=3)
+        # samples.loc[:, 'Y'] = samples.loc[:, 'Y'].interpolate(method='spline',
+        #                                                       order=3)
+
+        sw = self.screen_size[0]
+        samples.loc[:, 'XY'] = samples.loc[:, 'X'] + sw * samples.loc[:, 'Y']
+        samples.drop(['X', 'Y'], axis=1, inplace=True)
+
+        return samples

@@ -12,19 +12,19 @@ from data_source import DataSource
 from schema import Schema, Or, Optional
 
 
-def _val(x, pos):
+def _val(x, pos, label_bin):
     return np.mean(x)
 
 
-def _std(x, pos):
+def _std(x, pos, label_bin):
     return x.std(axis=0)
 
 
-def _sem(x, pos):
+def _sem(x, pos, label_bin):
     return x.sem(axis=0)
 
 
-def _var(x, pos):
+def _var(x, pos, label_bin):
     return np.var(x)
 
 

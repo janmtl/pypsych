@@ -10,19 +10,19 @@ from data_source import DataSource
 from schema import Schema, Or, Optional
 
 
-def _val(x, pos):
+def _val(x, pos, label_bin):
     return np.mean(x)
 
 
-def _sem(x, pos):
+def _sem(x, pos, label_bin):
     return x.sem(axis=0)
 
 
-def _count(x, pos):
+def _count(x, pos, label_bin):
     return np.size(x)
 
 
-def _nans(x, pos):
+def _nans(x, pos, label_bin):
     return np.size(pos) - np.sum(pos)
 
 
@@ -38,10 +38,11 @@ class BeGaze(DataSource):
                                      'COUNT': _count,
                                      'NANS': _nans}}
 
-    def process(self):
-        """."""
-        self.merge_data()
-        self.bin_data()
+    # TODO(janmtl): remove this if everything still works
+    # def process(self):
+    #     """."""
+    #     self.merge_data()
+    #     self.bin_data()
 
     def merge_data(self):
         """

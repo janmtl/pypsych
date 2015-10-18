@@ -12,7 +12,7 @@ from schema import Schema, Or
 from utils import merge_and_rename_columns
 
 
-def _idem(x, pos):
+def _idem(x, pos, label_bin):
     return x.values[0]
 
 
@@ -57,7 +57,7 @@ class EPrime(DataSource):
     def create_label_bins(self, labels):
         """Construct the dummy label_bins dataframe."""
         label_bins = labels
-        label_bins.loc[:, 'Order'] = labels.index.values
+        label_bins.loc[:, 'Order'] = labels.index.values - 1
         label_bins.loc[:, 'Bin_Order'] = labels.index.values
         label_bins.loc[:, 'Start_Time'] = labels.index.values
         label_bins.loc[:, 'End_Time'] = labels.index.values + 1

@@ -56,7 +56,7 @@ class DataSource(object):
                         & (raw.index.values < label_bin['End_Time'])
                     samples = raw[selector][channel]
                     pos = raw.loc[selector, 'pos']
-                    stats.append(stat_fun(samples, pos))
+                    stats.append(stat_fun(samples, pos, label_bin))
 
                 new_panel['stat'] = stats
                 output[channel][stat_name] = new_panel.sort('Bin_Order')

@@ -165,6 +165,7 @@ class Schedule(object):
                                     fd['Path'] = os.path.join(root, filepath)
                                     files_dict.append(fd)
         files_df = pd.DataFrame(files_dict)
+        files_df.fillna({'Task_Order': 0}, inplace=True)
         files_df[['Subject', 'Task_Order']] = \
             files_df[['Subject', 'Task_Order']].astype(np.int64)
         return files_df

@@ -38,12 +38,6 @@ class BeGaze(DataSource):
                                      'COUNT': _count,
                                      'NANS': _nans}}
 
-    # TODO(janmtl): remove this if everything still works
-    # def process(self):
-    #     """."""
-    #     self.merge_data()
-    #     self.bin_data()
-
     def merge_data(self):
         """
         Clean and merge the samples and labels data.
@@ -166,7 +160,6 @@ class BeGaze(DataSource):
             temp_labels.loc[temp_pos, 'Right_Trim'] = \
                 label_config.get('right_trim', 0)
             labels.update(temp_labels)
-
         # Fill out the Bin_Order column
         labels['Bin_Order'] = np.arange(0, len(labels['Bin_Order']))
 

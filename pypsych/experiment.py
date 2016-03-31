@@ -269,8 +269,9 @@ class Experiment(object):
 
         # The schedule dataframe
         sched_df = self.schedule.sched_df.copy(deep=True)
-        sched_df = sched_df.sort(['Subject', 'Data_Source_Name', 'Task_Name',
-                                  'File'])
+        sched_df = sched_df.sort_values(by=['Subject', 'Data_Source_Name',
+                                            'Task_Name', 'File'],
+                                        axis=0)
         sched_df = sched_df.set_index(['Subject', 'Data_Source_Name',
                                       'Task_Name', 'File'])
         sched_df = sched_df.to_html()

@@ -7,6 +7,7 @@
 # interface
 import pandas as pd
 import io
+import numpy as np
 from data_source import DataSource
 from schema import Schema, Or
 from utils import merge_and_rename_columns
@@ -69,6 +70,7 @@ class EPrime(DataSource):
         Create the columns from the keys and names that were passed into the
         configuration.
         """
+        samples.replace("nan", np.nan, inplace=True)
         for key, names in self.config.iteritems():
             samples = merge_and_rename_columns(samples, key, names)
 

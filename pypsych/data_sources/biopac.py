@@ -47,7 +47,7 @@ class Biopac(DataSource):
                                            comment="#",
                                            delimiter="\t",
                                            skipinitialspace=True,
-                                           header=False,
+                                           header=None,
                                            index_col=False,
                                            names=['bpm', 'rr', 'twave'])
 
@@ -113,7 +113,8 @@ class Biopac(DataSource):
         flags = labels['flag'].values
         low_offset = np.append(-255, flags)
         high_offset = np.append(flags, flags[-1])
-        event_flags = flags[(low_offset-high_offset) != 0]
+        sel = ((low_offset-high_offset) != 0)[:-1]
+        event_flags = flags[sel]
         start_times = np.where((low_offset-high_offset) != 0)[0]
 
         labels = pd.DataFrame({'flag': event_flags,
@@ -146,7 +147,7 @@ class Biopac(DataSource):
         configuration dictionary.
         """
         labels = pd.merge(labels, config, on='flag')
-        labels.sort('Start_Time', inplace=True)
+        labels = labels.sort_values(by='Start_Time', axis=0)
         return labels
 
     def create_label_bins(self, labels):

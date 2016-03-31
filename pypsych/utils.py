@@ -44,7 +44,7 @@ def merge_and_rename_columns(df, new_name, old_names):
 
     if type(old_names) is not list:
         if new_name != old_names:
-            res[new_name] = np.nan          
+            res[new_name] = np.nan
         sel = ~pd.notnull(res[new_name])
         res.loc[sel, new_name] = res.loc[sel, old_names]
     else:

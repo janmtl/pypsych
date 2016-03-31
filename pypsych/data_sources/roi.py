@@ -38,6 +38,7 @@ class BeGazeROI(BeGaze):
                 - self.mask_position[1]
             sel_onmask = (x > 0) & (x < self.mask_size[0]) & \
                          (y > 0) & (y < self.mask_size[1])
+                         
             mxy = (x + self.mask_size[0] * y)[sel_onmask]
             hits = 0.0
             for p in mxy:

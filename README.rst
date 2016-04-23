@@ -8,6 +8,8 @@ PyPsych
 .. image:: https://pypip.in/d/pypsych/badge.png
         :target: https://pypi.python.org/pypi/pypsych
 
+.. image:: https://zenodo.org/badge/12748/janmtl/pypsych.svg
+   :target: https://zenodo.org/badge/latestdoi/12748/janmtl/pypsych
 
 Data-crunching automation for psychology experiments (SMI BeGaze, Biopac,...)
 

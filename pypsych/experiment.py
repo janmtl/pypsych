@@ -16,6 +16,7 @@ from data_sources.biopac import Biopac
 from data_sources.eprime import EPrime
 from data_sources.hrvstitcher import HRVStitcher
 from data_sources.roi import BeGazeROI
+from data_sources.kubios import Kubios
 
 pd.set_option('display.max_colwidth', 1000)
 
@@ -23,7 +24,8 @@ DATA_SOURCES = {'BeGaze': BeGaze,
                 'Biopac': Biopac,
                 'EPrime': EPrime,
                 'HRVStitcher': HRVStitcher,
-                'BeGazeROI': BeGazeROI}
+                'BeGazeROI': BeGazeROI,
+                'Kubios': Kubios}
 
 
 class Experiment(object):
